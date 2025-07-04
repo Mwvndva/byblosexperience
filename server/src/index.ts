@@ -84,12 +84,17 @@ const corsOptions: cors.CorsOptions = {
     
     // Allow requests from allowed origins or any localhost/127.0.0.1 in development
     if (
-      allowedOrigins.includes(origin) ||
+      // Check if origin is defined and matches any allowed origin
+      origin && allowedOrigins.some(o => o === origin) ||
+      // Check if '*' is in allowed origins
       allowedOrigins.includes('*') ||
+      // Check for localhost/127.0.0.1/0.0.0.0 in development
       (process.env.NODE_ENV === 'development' && (
-        origin.includes('localhost') || 
-        origin.includes('127.0.0.1') ||
-        origin.includes('0.0.0.0')
+        origin && (
+          origin.includes('localhost') || 
+          origin.includes('127.0.0.1') ||
+          origin.includes('0.0.0.0')
+        )
       ))
     ) {
       return callback(null, true);
