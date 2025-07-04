@@ -79,16 +79,18 @@ const corsOptions: cors.CorsOptions = {
   optionsSuccessStatus: 200 // For legacy browser support
 };
 
-// Middleware
-app.use(cors(corsOptions));
-// Increase JSON and URL-encoded payload size limit to 50MB
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
-
 // Add cookie parser middleware
 import cookieParser from 'cookie-parser';
 // @ts-ignore - TypeScript has issues with cookie-parser's default export
 app.use(cookieParser());
+
+// Middleware
+// Apply CORS first
+app.use(cors(corsOptions));
+
+// Increase JSON and URL-encoded payload size limit to 50MB
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Log CORS origin for debugging
 console.log('CORS Origin:', process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : 'http://localhost:5173');
