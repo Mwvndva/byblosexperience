@@ -4,7 +4,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { mkdir } from 'fs/promises';
 import express from 'express';
-import cors from 'cors';
 import organizerRoutes from './routes/organizer.routes.js';
 import sellerRoutes from './routes/seller.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
@@ -38,45 +37,6 @@ console.log({
 // Create Express app
 const app = express();
 
-// Configure Express to handle CORS directly
-app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
-  // Get the origin header
-  const origin = req.headers.origin as string | undefined;
-  
-  // Allow requests from specific origins
-  const allowedOrigins = [
-    'https://byblosexperience.vercel.app',
-    'http://localhost:3000',
-    'http://localhost:5173'
-  ];
-  
-  // Handle CORS for API requests
-  if (req.path.startsWith('/api')) {
-    if (origin && allowedOrigins.includes(origin)) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-    } else {
-      res.setHeader('Access-Control-Allow-Origin', '*');
-    }
-    
-    // Allow credentials for API requests
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    
-    // Specify allowed methods
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    
-    // Specify allowed headers
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
-    
-    // Handle preflight requests
-    if (req.method === 'OPTIONS') {
-      res.status(200).end();
-      return;
-    }
-  }
-  
-  next();
-});
-
 // Add cookie parser middleware first
 import cookieParser from 'cookie-parser';
 // @ts-ignore - TypeScript has issues with cookie-parser's default export
@@ -102,7 +62,7 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
     'http://localhost:5173'
   ];
 
-  // Handle CORS for all requests (not just /api)
+  // Handle CORS for all requests
   if (origin && allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -111,7 +71,7 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
     res.setHeader('Access-Control-Allow-Credentials', 'false');
   }
 
-  // Always allow these headers and methods
+  // Allow these headers and methods
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
 
