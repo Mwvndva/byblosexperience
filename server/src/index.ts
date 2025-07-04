@@ -4,7 +4,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { mkdir } from 'fs/promises';
 import express from 'express';
-// Remove the cors import
 import organizerRoutes from './routes/organizer.routes.js';
 import sellerRoutes from './routes/seller.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
