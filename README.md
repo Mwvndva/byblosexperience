@@ -4,53 +4,65 @@ A modern e-commerce platform for discovering and selling unique fashion items wi
 
 ## 🌟 Features
 
-- 📭 Browse products by aesthetic categories
-- 🏪 Seller dashboard for product management
-- 힖 Responsive design with modern UI components
-- 🔍 Advanced product filtering and search functionality
-- 🛒 Shopping cart and checkout process
-- 🔐 Secure JWT-based authentication system
--  Mobile-first responsive design
-- 💎 Product management with image uploads
-- 📋 Order tracking and management
-- 📤 Real-time inventory updates
+### For Customers
 - 🛍️ Browse products by aesthetic categories
+- 🔍 Advanced product filtering and search functionality
+- 🛒 Shopping cart and secure checkout process
+- 📱 Mobile-first responsive design
+- 🔐 Secure user authentication
+- 📋 Order tracking and history
+
+### For Sellers
 - 🏪 Seller dashboard for product management
-- 🖼️ Responsive design with modern UI components
-- 🔍 Advanced product filtering and search
-- 🛒 Shopping cart functionality
-- 🔐 Secure authentication system
+- 💎 Product listing with image uploads
+- 📊 Sales analytics and reporting
+- 📤 Real-time inventory management
+- 🏷️ Category and collection management
+
+### General
+- 🌐 Responsive design with modern UI components
+- ⚡ Optimized performance with Vite
+- 🔒 Secure JWT-based authentication
 - 📱 Mobile-friendly interface
 
 ## 🚀 Tech Stack
 
 ### Frontend
-- **Framework**: React 18 with TypeScript
-- **Build Tool**: Vite
-- **Styling**: Tailwind CSS with CSS Modules
-- **UI Components**: shadcn/ui (Radix UI primitives)
-- **State Management**: React Query for server state
-- **Forms**: React Hook Form with Zod validation
-- **Routing**: React Router v6
-- **Icons**: Lucide React
-- **Testing**: Playwright for E2E testing
+| Technology | Description |
+|------------|-------------|
+| React 18 | Frontend library for building user interfaces |
+| TypeScript | Static type checking |
+| Vite | Next Generation Frontend Tooling |
+| Tailwind CSS | Utility-first CSS framework |
+| shadcn/ui | Beautifully designed components |
+| React Query | Server state management |
+| React Hook Form | Form handling with Zod validation |
+| React Router v6 | Client-side routing |
+| Lucide React | Beautiful & consistent icons |
+| Playwright | End-to-end testing |
 
 ### Backend
-- **Runtime**: Node.js 18+ with Express
-- **Database**: PostgreSQL 13+
-- **ORM**: Knex.js for query building
-- **Authentication**: JWT with refresh tokens
-- **Validation**: Express Validator
-- **Logging**: Winston
-- **API**: RESTful API design
+| Technology | Description |
+|------------|-------------|
+| Node.js 18+ | JavaScript runtime |
+| Express | Web application framework |
+| PostgreSQL | Relational database |
+| Knex.js | SQL query builder |
+| JWT | Authentication with refresh tokens |
+| Express Validator | Request validation |
+| Winston | Logging |
+| RESTful API | Resource-based API design |
 
 ## 🛠️ Prerequisites
+
+Before you begin, ensure you have the following installed:
 
 - **Node.js** 18+ (LTS version recommended)
 - **npm** 9+ or **yarn** 1.22+
 - **PostgreSQL** 13+ (with pgAdmin for database management)
 - **Git** for version control
 - **Modern web browser** (Chrome, Firefox, Safari, or Edge)
+- **Code editor** (VS Code, WebStorm, etc.)
 
 ## 🚀 Getting Started
 
@@ -68,54 +80,54 @@ cd byblos-atelier-vogue
 npm install
 
 # Install server dependencies
-cd server
-npm install
-cd ..
+cd server && npm install && cd ..
 ```
 
 ### 3. Set up environment variables
 
+Create the following files with the required environment variables:
+
 #### Frontend (root `.env`)
 ```env
-# API Configuration
 VITE_API_URL=http://localhost:3002/api
-
-# Optional: Set to 'production' when deploying
 NODE_ENV=development
-
-# Optional: Google Analytics (if used)
-# VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+# VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX  # Uncomment for Google Analytics
 ```
 
-#### Backend (server/.env)
+#### Backend (`server/.env`)
 ```env
-# Server Configuration
+# Server
 PORT=3002
 NODE_ENV=development
 
-# Database Configuration
-DB_USER=your_db_user
-DB_PASSWORD=your_db_password
-DB_NAME=byblos_atelier
+# Database
 DB_HOST=localhost
 DB_PORT=5432
+DB_NAME=byblos_atelier
+DB_USER=your_db_user
+DB_PASSWORD=your_secure_password
 
-# JWT Configuration
+# JWT
 JWT_SECRET=generate_a_strong_secret_here
 JWT_EXPIRES_IN=24h
 JWT_REFRESH_EXPIRES_IN=7d
 
-# Optional: Email configuration (if implemented)
+# Email (optional)
 # SMTP_HOST=smtp.example.com
 # SMTP_PORT=587
 # SMTP_USER=your_email@example.com
 # SMTP_PASS=your_email_password
+# EMAIL_FROM=noreply@byblosatelier.com
 ```
 
 ### 4. Set up the database
 
 1. **Create a new PostgreSQL database**
-   ```sql
+   ```bash
+   # Connect to PostgreSQL
+   psql -U postgres
+   
+   # Create database and user
    CREATE DATABASE byblos_atelier;
    CREATE USER your_db_user WITH PASSWORD 'your_secure_password';
    GRANT ALL PRIVILEGES ON DATABASE byblos_atelier TO your_db_user;
@@ -123,41 +135,37 @@ JWT_REFRESH_EXPIRES_IN=7d
 
 2. **Run database migrations**
    ```bash
-   # Navigate to server directory
+   # From the server directory
    cd server
    
-   # Install Knex CLI globally (if not already installed)
-   npm install -g knex
+   # Install Knex CLI locally
+   npm install -D knex
    
-   # Run migrations
+   # Run migrations and seeds
    npx knex migrate:latest
-   
-   # Seed the database with sample data (optional)
-   npx knex seed:run
+   npx knex seed:run  # Optional: for sample data
    ```
-
-3. **Verify the database**
-   - Connect to your database using pgAdmin or psql
-   - Verify that all tables were created successfully
 
 ### 5. Start the development servers
 
 #### Terminal 1: Frontend
 ```bash
-# From the project root
+# From project root
 npm run dev
 ```
 
 #### Terminal 2: Backend
 ```bash
-# From the server directory
-cd server
-npm run dev
+# From server directory
+cd server && npm run dev
 ```
 
-Once both servers are running:
-- Frontend will be available at: `http://localhost:5173`
-- Backend API will be available at: `http://localhost:3002/api`
+### 6. Access the application
+
+- **Frontend**: `http://localhost:5173`
+- **API**: `http://localhost:3002/api`
+- **API Docs**: `http://localhost:3002/api-docs` (if Swagger is configured)
+- **PgAdmin**: `http://localhost:5050` (if using Docker)
 
 ### 6. Access the application
 
@@ -165,40 +173,85 @@ Once both servers are running:
 - **Seller Dashboard**: `http://localhost:5173/seller/dashboard`
 - **API Documentation**: `http://localhost:3002/api-docs` (if Swagger/OpenAPI is set up)
 
-## 🧪 Running Tests
+## 🧪 Testing
 
 ```bash
 # Run all tests
 npm test
 
-# Run tests in UI mode
-npm run test:ui
+# Run frontend tests
+npm run test:frontend
+
+# Run backend tests
+cd server && npm test
+
+# Run E2E tests
+npm run test:e2e
 ```
 
-## 🏗️ Build for Production
+## 🏗️ Production Build
 
 ```bash
-# Build the frontend
+# Build the frontend for production
 npm run build
 
-# Start the production server (from server directory)
-cd server
-npm start
+# Start production server (from server directory)
+cd server && NODE_ENV=production npm start
+
+# Or using PM2 (recommended for production)
+npm install -g pm2
+pm2 start server/dist/index.js --name "byblos-api"
 ```
+
+## 🐳 Docker Support
+
+Run the entire stack with Docker Compose:
+
+```bash
+docker-compose up -d
+```
+
+This will start:
+- Frontend (port 80)
+- Backend API (port 3002)
+- PostgreSQL (port 5432)
+- PgAdmin (port 5050)
 
 ## 📂 Project Structure
 
 ```
-├── public/               # Static files
-├── server/               # Backend server code
+.
+├── public/                  # Static files
+├── server/                  # Backend server code
 │   ├── src/
-│   │   ├── controllers/  # Request handlers
-│   │   ├── middleware/   # Express middleware
-│   │   ├── routes/      # API routes
-│   │   └── utils/       # Utility functions
-│   └── knexfile.js      # Knex configuration
-├── src/
-│   ├── api/            # API service functions
+│   │   ├── config/         # Configuration files
+│   │   ├── controllers/    # Request handlers
+│   │   ├── middleware/     # Express middleware
+│   │   ├── models/         # Database models
+│   │   ├── routes/         # API routes
+│   │   ├── services/       # Business logic
+│   │   ├── utils/          # Utility functions
+│   │   └── app.ts          # Express app setup
+│   ├── knexfile.ts         # Knex configuration
+│   └── migrations/         # Database migrations
+│
+├── src/                    # Frontend source
+│   ├── api/                # API service functions
+│   ├── assets/             # Static assets
+│   ├── components/         # Reusable components
+│   ├── hooks/              # Custom React hooks
+│   ├── pages/              # Page components
+│   ├── store/              # State management
+│   ├── styles/             # Global styles
+│   ├── types/              # TypeScript type definitions
+│   ├── utils/              # Utility functions
+│   └── App.tsx             # Main application component
+│
+├── .env                    # Frontend environment variables
+├── .env.example            # Example environment variables
+├── package.json            # Frontend dependencies
+├── tsconfig.json           # TypeScript configuration
+└── vite.config.ts          # Vite configuration
 │   ├── assets/          # Static assets
 │   ├── components/      # Reusable UI components
 │   ├── contexts/        # React contexts
@@ -215,19 +268,34 @@ npm start
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+1. Fork the project
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Distributed under the MIT License. See `LICENSE` for more information.
 
-## 🙏 Acknowledgments
+## 👏 Acknowledgments
 
-- [shadcn/ui](https://ui.shadcn.com/) for the beautiful component library
-- [Tailwind CSS](https://tailwindcss.com/) for utility-first CSS
-- [Vite](https://vitejs.dev/) for the amazing developer experience
-- [React Query](https://tanstack.com/query) for server state management
+- [shadcn/ui](https://ui.shadcn.com/) - Beautifully designed components
+- [Vite](https://vitejs.dev/) - Next generation frontend tooling
+- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
+- [React Query](https://tanstack.com/query) - Server state management
+- [Knex.js](https://knexjs.org/) - SQL query builder
+- [Express](https://expressjs.com/) - Fast, unopinionated web framework
+
+## 📚 Documentation
+
+- [API Documentation](http://localhost:3002/api-docs) (available when server is running)
+- [Frontend Architecture](./docs/frontend-architecture.md)
+- [API Reference](./docs/api-reference.md)
+- [Database Schema](./docs/database-schema.md)
+
+## 🔧 Support
+
+For support, please open an issue or reach out to our team at support@byblosatelier.com
