@@ -20,12 +20,8 @@ import { protect } from './middleware/auth.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load environment variables
-const envPath = process.env.NODE_ENV === 'production' 
-  ? path.resolve(__dirname, '../.env.production')
-  : path.resolve(__dirname, '../../.env');
-
-dotenv.config({ path: envPath });
+// Load environment variables from Render
+dotenv.config();
 
 // Debug log environment variables (without sensitive data)
 console.log('Environment variables loaded:');
@@ -41,33 +37,6 @@ console.log({
 
 // Create Express app
 const app = express();
-
-// Serve static files from uploads directory
-const uploadsDir = path.join(process.cwd(), 'uploads');
-console.log('Serving static files from:', uploadsDir);
-
-// Ensure the uploads directory exists
-const ensureUploadsDir = async () => {
-  try {
-    await mkdir(uploadsDir, { recursive: true });
-    console.log('Uploads directory is ready');
-  } catch (error) {
-    console.error('Error creating uploads directory:', error);
-  }
-};
-
-// Serve static files
-app.use('/uploads', express.static(uploadsDir, {
-  setHeaders: (res, filePath) => {
-    // Set proper cache control for images
-    if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg') || 
-        filePath.endsWith('.png') || filePath.endsWith('.webp')) {
-      res.setHeader('Cache-Control', 'public, max-age=86400'); // 1 day
-    }
-  }
-}));
-
-ensureUploadsDir();
 
 // CORS configuration
 const corsOptions: cors.CorsOptions = {
