@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:18-slim
 
 WORKDIR /app
 
@@ -11,11 +11,11 @@ RUN npm install
 # Copy source code
 COPY . .
 
-# Build the application
+# Build and migrate database
 RUN npm run build
 
-# Expose the port the app runs on
-EXPOSE $PORT
+# Expose port
+EXPOSE 8080
 
 # Start the application
 CMD ["npm", "start"]
