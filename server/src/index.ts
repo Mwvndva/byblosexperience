@@ -44,19 +44,18 @@ const corsOptions: cors.CorsOptions = {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
+    // Define allowed origins
     const allowedOrigins = process.env.CORS_ORIGIN 
       ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
-      : ['http://localhost:3000', 'http://localhost:5173'];
+      : ['http://localhost:3000', 'http://localhost:5173', 'https://byblosexperience.vercel.app'];
     
-    // Allow requests from allowed origins or any localhost/127.0.0.1 in development
+    // Allow requests from allowed origins or any localhost/127.0.0.1
     if (
       allowedOrigins.includes(origin) ||
       allowedOrigins.includes('*') ||
-      (process.env.NODE_ENV === 'development' && (
-        origin.includes('localhost') || 
-        origin.includes('127.0.0.1') ||
-        origin.includes('0.0.0.0')
-      ))
+      origin.includes('localhost') || 
+      origin.includes('127.0.0.1') ||
+      origin.includes('0.0.0.0')
     ) {
       return callback(null, true);
     }
