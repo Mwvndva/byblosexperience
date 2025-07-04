@@ -47,7 +47,7 @@ const corsOptions: cors.CorsOptions = {
     // Define allowed origins
     const allowedOrigins = process.env.CORS_ORIGIN 
       ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
-      : ['http://localhost:3000', 'http://localhost:5173', 'https://byblosexperience.vercel.app'];
+      : ['http://localhost:3000', 'http://localhost:5173', 'https://byblosexperience.vercel.app', 'https://byblos-v2.vercel.app'];
     
     // Allow requests from allowed origins or any localhost/127.0.0.1
     if (
