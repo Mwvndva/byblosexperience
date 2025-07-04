@@ -1,23 +1,57 @@
-node_modules
+# Dependencies
+node_modules/
 npm-debug.log
-Dockerfile
-docker-compose.yml
-.git
-.gitignore
+yarn-error.log
+pnpm-debug.log
+
+# Environment files
 .env
-.vscode
-.idea
-*.md
+.env.*
+!.env.example
+
+# Build outputs
+/dist
+/build
+/.next
+/out
+/server/dist
+
+# Testing
+/coverage
+
+# Logs
 *.log
-coverage
-**/node_modules
-**/dist
-**/build
-**/.next
-**/out
-**/.cache
-**/__pycache__
-**/*.pyc
-**/*.pyo
+logs
+
+# Editor directories and files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Render specific
+.render/
 **/*.pyd
 *.pem
