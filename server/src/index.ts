@@ -38,8 +38,14 @@ console.log({
 // Create Express app
 const app = express();
 
-// CORS middleware
+// CORS middleware with logging
 app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.log('CORS Request:', {
+    method: req.method,
+    url: req.url,
+    origin: req.headers.origin
+  });
+
   // Allow all origins for now
   res.setHeader('Access-Control-Allow-Origin', '*');
   
@@ -52,6 +58,7 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
 
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('CORS Preflight request handled');
     res.status(200).end();
     return;
   }
@@ -89,6 +96,9 @@ app.use('/api/tickets', ticketRoutes);
 // Mount organizer public routes (login, register, etc.)
 app.use('/api/organizers', organizerRoutes);
 
+// Mount event routes at root level
+app.use('/events', eventRoutes);
+
 // Organizer protected routes
 const protectedRouter = express.Router();
 
@@ -98,7 +108,7 @@ protectedRouter.use(protect);
 // Mount protected routes
 protectedRouter.use('/dashboard', dashboardRoutes);
 protectedRouter.use('/tickets', ticketRoutes);
-protectedRouter.use('', eventRoutes); // Mount event routes at /api/organizers/events
+protectedRouter.use('/events', eventRoutes); // Mount event routes at /api/organizers/events
 
 // Mount the protected router under /api/organizers
 app.use('/api/organizers', protectedRouter);
