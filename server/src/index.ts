@@ -46,11 +46,14 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
     origin: req.headers.origin
   });
 
-  // Allow all origins for now
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // Get origin header
+  const origin = req.headers.origin as string | undefined;
   
-  // Allow credentials
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  // Set CORS headers
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
   
   // Allow these headers and methods
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
