@@ -4,13 +4,13 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { mkdir } from 'fs/promises';
 import express from 'express';
-import organizerRoutes from './routes/organizer.routes.js';
-import sellerRoutes from './routes/seller.routes.js';
-import dashboardRoutes from './routes/dashboard.routes.js';
-import publicRoutes from './routes/public.routes.js';
-import healthRoutes from './routes/health.routes.js';
-import ticketRoutes from './routes/ticket.routes.js';
-import eventRoutes from './routes/event.routes.js';
+import organizerRoutes from './routes/organizer.routes';
+import sellerRoutes from './routes/seller.routes';
+import dashboardRoutes from './routes/dashboard.routes';
+import publicRoutes from './routes/public.routes';
+import healthRoutes from './routes/health.routes';
+import ticketRoutes from './routes/ticket.routes';
+import eventRoutes from './routes/event.routes';
 import { pool, testConnection as testDbConnection } from './config/database.js';
 import { globalErrorHandler, notFoundHandler } from './utils/errorHandler.js';
 import { protect } from './middleware/auth.js';
@@ -75,15 +75,18 @@ const testConnection = async () => {
     await testDbConnection();
     console.log('✅ Database connection test completed successfully');
     return true;
-  } catch (error) {
+  } catch (error: unknown) {
+    // Handle Node.js error types
+    const isNodeError = error instanceof Error && ('code' in error);
+    
     console.error('❌ Database connection test failed:', {
-      message: error.message,
-      code: error.code,
-      detail: error.detail,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      message: error instanceof Error ? error.message : 'Unknown error',
+      code: isNodeError ? (error as any).code : undefined,
+      detail: error instanceof Error ? error.message : undefined,
+      stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
     });
     console.error('Please check your database configuration in .env and ensure the database is running');
-    throw error; // Re-throw to be handled by the caller
+    throw error instanceof Error ? error : new Error('Unknown error'); // Re-throw to be handled by the caller
   }
 };
 
@@ -156,11 +159,14 @@ const startServer = async () => {
         process.exit(0);
       });
     });
-  } catch (error) {
+  } catch (error: unknown) {
+    // Handle Node.js error types
+    const isNodeError = error instanceof Error && ('code' in error);
+    
     console.error('❌ Failed to start server:', {
-      message: error.message,
-      code: error.code,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      message: error instanceof Error ? error.message : 'Unknown error',
+      code: isNodeError ? (error as any).code : undefined,
+      stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
     });
     process.exit(1);
   }
