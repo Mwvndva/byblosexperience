@@ -71,40 +71,9 @@ ensureUploadsDir();
 
 // CORS configuration
 const corsOptions: cors.CorsOptions = {
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // In production, allow all origins
-    if (process.env.NODE_ENV === 'production') {
-      return callback(null, true);
-    }
-    
-    // In development, use the allowed origins
-    const allowedOrigins = process.env.CORS_ORIGIN 
-      ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
-      : ['http://localhost:3000', 'http://localhost:5173', 'https://byblos-v2.vercel.app'];
-    
-    // Allow requests from allowed origins or any localhost/127.0.0.1 in development
-    if (
-      // Check if origin is defined and matches any allowed origin
-      origin && allowedOrigins.some(o => o === origin) ||
-      // Check if '*' is in allowed origins
-      allowedOrigins.includes('*') ||
-      // Check for localhost/127.0.0.1/0.0.0.0 in development
-      (process.env.NODE_ENV === 'development' && (
-        origin && (
-          origin.includes('localhost') || 
-          origin.includes('127.0.0.1') ||
-          origin.includes('0.0.0.0')
-        )
-      ))
-    ) {
-      return callback(null, true);
-    }
-    
-    return callback(new Error('Not allowed by CORS'));
-  },
+  origin: ['http://localhost:3000', 'http://localhost:5173', 'https://byblos-v2.vercel.app'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-  exposedHeaders: ['Authorization', 'Content-Length', 'X-Foo', 'X-Bar'],
   credentials: true,
   maxAge: 86400, // 24 hours
   optionsSuccessStatus: 200 // For legacy browser support
