@@ -38,12 +38,26 @@ console.log({
 // Create Express app
 const app = express();
 
-// Simple CORS middleware
+// Configure Express to handle CORS directly
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
-  res.header('Access-Control-Allow-Credentials', 'true');
+  // Allow requests from any origin
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  
+  // Allow credentials (cookies, authorization headers)
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
+  // Specify allowed methods
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  
+  // Specify allowed headers
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+  
   next();
 });
 
