@@ -40,6 +40,9 @@ const app = express();
 
 // Configure Express to handle CORS directly
 app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+  // Get the origin header
+  const origin = req.headers.origin as string | undefined;
+  
   // Allow requests from specific origins
   const allowedOrigins = [
     'https://byblosexperience.vercel.app',
@@ -47,26 +50,28 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
     'http://localhost:5173'
   ];
   
-  const origin = req.headers.origin as string | undefined;
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  }
-  
-  // Allow credentials (cookies, authorization headers)
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  
-  // Specify allowed methods
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  
-  // Specify allowed headers
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
-  
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+  // Handle CORS for API requests
+  if (req.path.startsWith('/api')) {
+    if (origin && allowedOrigins.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+    
+    // Allow credentials for API requests
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    
+    // Specify allowed methods
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    
+    // Specify allowed headers
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+    
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+      res.status(200).end();
+      return;
+    }
   }
   
   next();
