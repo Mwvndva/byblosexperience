@@ -72,9 +72,12 @@ ensureUploadsDir();
 // CORS configuration
 const corsOptions: cors.CorsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+    // In production, allow all origins
+    if (process.env.NODE_ENV === 'production') {
+      return callback(null, true);
+    }
     
+    // In development, use the allowed origins
     const allowedOrigins = process.env.CORS_ORIGIN 
       ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
       : ['http://localhost:3000', 'http://localhost:5173', 'https://byblos-v2.vercel.app'];
