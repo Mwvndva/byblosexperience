@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { mkdir } from 'fs/promises';
 import express from 'express';
+// Remove the cors import
 import organizerRoutes from './routes/organizer.routes.js';
 import sellerRoutes from './routes/seller.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
@@ -37,47 +38,20 @@ console.log({
 // Create Express app
 const app = express();
 
-// Add cookie parser middleware first
-import cookieParser from 'cookie-parser';
-// @ts-ignore - TypeScript has issues with cookie-parser's default export
-app.use(cookieParser());
-
-// Set up request body parsing
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
-
-// CORS middleware with enhanced logging
+// CORS middleware
 app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.log('CORS Request Details:', {
-    origin: req.headers.origin,
-    path: req.path,
-    method: req.method,
-    headers: Object.keys(req.headers)
-  });
-
-  const origin = req.headers.origin as string | undefined;
-  const allowedOrigins = [
-    'https://byblosexperience.vercel.app',
-    'http://localhost:3000',
-    'http://localhost:5173'
-  ];
-
-  // Handle CORS for all requests
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Credentials', 'false');
-  }
-
+  // Allow all origins for now
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  
+  // Allow credentials
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
   // Allow these headers and methods
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
 
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
-    console.log('CORS Preflight request handled');
     res.status(200).end();
     return;
   }
