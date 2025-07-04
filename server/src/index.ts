@@ -71,7 +71,24 @@ ensureUploadsDir();
 
 // CORS configuration
 const corsOptions: cors.CorsOptions = {
-  origin: ['http://localhost:3000', 'http://localhost:5173', 'https://byblos-v2.vercel.app'],
+  origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // Allow requests from Vercel frontend
+    if (origin === 'https://byblos-v2.vercel.app') {
+      return callback(null, true);
+    }
+    
+    // Allow requests from localhost in development
+    if (process.env.NODE_ENV === 'development' && 
+        (origin === 'http://localhost:3000' || origin === 'http://localhost:5173')) {
+      return callback(null, true);
+    }
+    
+    return callback(new Error('Not allowed by CORS'));
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   credentials: true,
