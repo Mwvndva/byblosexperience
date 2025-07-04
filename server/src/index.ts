@@ -39,9 +39,20 @@ console.log({
 const app = express();
 
 // Configure Express to handle CORS directly
-app.use((req, res, next) => {
-  // Allow requests from any origin
-  res.setHeader('Access-Control-Allow-Origin', '*');
+app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+  // Allow requests from specific origins
+  const allowedOrigins = [
+    'https://byblosexperience.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:5173'
+  ];
+  
+  const origin = req.headers.origin as string | undefined;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
   
   // Allow credentials (cookies, authorization headers)
   res.setHeader('Access-Control-Allow-Credentials', 'true');
