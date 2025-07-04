@@ -1,8 +1,5 @@
 // Load environment variables first
 import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { mkdir } from 'fs/promises';
 import express from 'express';
 import organizerRoutes from './routes/organizer.routes';
 import sellerRoutes from './routes/seller.routes';
@@ -11,13 +8,9 @@ import publicRoutes from './routes/public.routes';
 import healthRoutes from './routes/health.routes';
 import ticketRoutes from './routes/ticket.routes';
 import eventRoutes from './routes/event.routes';
-import { pool, testConnection as testDbConnection } from './config/database.js';
+import { testConnection as testDbConnection } from './config/database.js';
 import { globalErrorHandler, notFoundHandler } from './utils/errorHandler.js';
 import { protect } from './middleware/auth.js';
-
-// Get the current directory
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // Load environment variables from Render
 dotenv.config();
@@ -119,7 +112,7 @@ protectedRouter.use('/events', eventRoutes); // Mount event routes at /api/organ
 app.use('/api/organizers', protectedRouter);
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (_req, res) => {
   res.status(200).json({ status: 'ok', message: 'Server is running' });
 });
 
