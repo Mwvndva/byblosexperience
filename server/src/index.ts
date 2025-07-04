@@ -77,20 +77,53 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
   next();
 });
 
-// Middleware
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
-// Increase JSON and URL-encoded payload size limit to 50MB
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
-
-// Add cookie parser middleware
+// Add cookie parser middleware first
 import cookieParser from 'cookie-parser';
 // @ts-ignore - TypeScript has issues with cookie-parser's default export
 app.use(cookieParser());
 
-// Log CORS origin for debugging
-console.log('CORS Origin:', process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : 'http://localhost:5173');
+// Set up request body parsing
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// CORS middleware with enhanced logging
+app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.log('CORS Request Details:', {
+    origin: req.headers.origin,
+    path: req.path,
+    method: req.method,
+    headers: Object.keys(req.headers)
+  });
+
+  const origin = req.headers.origin as string | undefined;
+  const allowedOrigins = [
+    'https://byblosexperience.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:5173'
+  ];
+
+  // Handle CORS for all requests (not just /api)
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Credentials', 'false');
+  }
+
+  // Always allow these headers and methods
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    console.log('CORS Preflight request handled');
+    res.status(200).end();
+    return;
+  }
+
+  next();
+});
 
 // Test database connection
 const testConnection = async () => {
