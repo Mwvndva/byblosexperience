@@ -71,19 +71,24 @@ ensureUploadsDir();
 
 // CORS configuration
 const corsOptions: cors.CorsOptions = {
-  origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
-    if (!origin) {
-      return callback(null, true);
-    }
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
     
-    // Allow requests from Vercel frontend
-    if (origin === 'https://byblos-v2.vercel.app') {
-      return callback(null, true);
-    }
+    const allowedOrigins = process.env.CORS_ORIGIN 
+      ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
+      : ['http://localhost:3000', 'http://localhost:5173'];
     
-    // Allow requests from localhost in development
-    if (process.env.NODE_ENV === 'development' && 
-        (origin === 'http://localhost:3000' || origin === 'http://localhost:5173')) {
+    // Allow requests from allowed origins or any localhost/127.0.0.1 in development
+    if (
+      allowedOrigins.includes(origin) ||
+      allowedOrigins.includes('*') ||
+      (process.env.NODE_ENV === 'development' && (
+        origin.includes('localhost') || 
+        origin.includes('127.0.0.1') ||
+        origin.includes('0.0.0.0')
+      ))
+    ) {
       return callback(null, true);
     }
     
@@ -91,23 +96,22 @@ const corsOptions: cors.CorsOptions = {
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  exposedHeaders: ['Authorization', 'Content-Length', 'X-Foo', 'X-Bar'],
   credentials: true,
   maxAge: 86400, // 24 hours
   optionsSuccessStatus: 200 // For legacy browser support
 };
 
+// Middleware
+app.use(cors(corsOptions));
+// Increase JSON and URL-encoded payload size limit to 50MB
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
 // Add cookie parser middleware
 import cookieParser from 'cookie-parser';
 // @ts-ignore - TypeScript has issues with cookie-parser's default export
 app.use(cookieParser());
-
-// Middleware
-// Apply CORS first
-app.use(cors(corsOptions));
-
-// Increase JSON and URL-encoded payload size limit to 50MB
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Log CORS origin for debugging
 console.log('CORS Origin:', process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : 'http://localhost:5173');
