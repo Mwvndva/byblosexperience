@@ -299,3 +299,47 @@ Distributed under the MIT License. See `LICENSE` for more information.
 ## 🔧 Support
 
 For support, please open an issue or reach out to our team at support@byblosatelier.com
+
+## 🚀 Deployment
+
+### Frontend (Vercel)
+
+1. Sign in to your Vercel account
+2. Connect your GitHub repository
+3. The frontend will be automatically deployed using the existing `vercel.json` configuration
+4. Set the following environment variables in Vercel:
+   - `VITE_API_URL`: Set to your Render backend URL (e.g., `https://byblos-atelier-api.onrender.com/api`)
+   - `NODE_ENV`: Set to `production`
+
+### Backend (Render)
+
+1. Sign in to your Render account
+2. Create a new Web Service
+3. Connect your GitHub repository
+4. Set the following environment variables in Render:
+   - `NODE_ENV`: `production`
+   - `PORT`: `$PORT` (Render will automatically set this)
+   - `DB_HOST`: `$DATABASE_HOST` (Render database host)
+   - `DB_PORT`: `$DATABASE_PORT` (Render database port)
+   - `DB_NAME`: `$DATABASE_NAME` (Render database name)
+   - `DB_USER`: `$DATABASE_USER` (Render database user)
+   - `DB_PASSWORD`: `$DATABASE_PASSWORD` (Render database password)
+   - `JWT_SECRET`: Your JWT secret key
+   - `JWT_EXPIRES_IN`: `24h`
+   - `JWT_REFRESH_EXPIRES_IN`: `7d`
+
+5. Create a PostgreSQL database in Render
+6. Link the database to your web service
+7. The backend will be deployed automatically using the `render.json` configuration
+
+### Post-Deployment
+
+1. After both deployments are complete:
+   - Frontend URL will be provided by Vercel (e.g., `https://byblos-atelier.vercel.app`)
+   - Backend URL will be provided by Render (e.g., `https://byblos-atelier-api.onrender.com`)
+   - Update the `VITE_API_URL` in Vercel to point to your Render backend URL
+
+2. Verify the deployment:
+   - Frontend: Visit your Vercel URL
+   - Backend: Visit your Render URL and check `/api/health` endpoint
+   - API Docs: Visit `/api-docs` on your Render URL

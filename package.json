@@ -1,13 +1,6 @@
 {
   "name": "vite_react_shadcn_ts",
   "private": true,
-  "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=9.0.0"
-  },
-  "cacheDirectories": [
-    "node_modules"
-  ],
   "version": "0.0.0",
   "type": "module",
   "scripts": {
@@ -20,8 +13,7 @@
     "test": "playwright test",
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",
-    "start": "vite preview --port 3000",
-    "deploy:render": "vite build --mode production"
+    "start": "vite preview --port 3000"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
