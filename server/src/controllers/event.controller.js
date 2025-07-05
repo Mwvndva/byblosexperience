@@ -785,13 +785,31 @@ export const updateEventStatus = async (req, res) => {
 
 export const getUpcomingEvents = async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit, 10) || 10;
+    console.log('Received request to get upcoming events with query:', req.query);
+    
+    // Parse and validate limit
+    const limit = Math.min(parseInt(req.query.limit, 10) || 10, 100); // Cap at 100 events
+    if (isNaN(limit) || limit < 1) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid limit parameter. Must be a positive number.'
+      });
+    }
+    
+    console.log(`Fetching ${limit} upcoming events...`);
     const events = await Event.getUpcomingEvents(limit);
+    
+    console.log(`Found ${events.length} upcoming events`);
     
     // Return events array directly for public API
     res.status(200).json(events);
   } catch (error) {
-    console.error('Get upcoming events error:', error);
+    console.error('Get upcoming events error:', {
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      query: req.query
+    });
+    
     res.status(500).json({
       status: 'error',
       message: 'An error occurred while fetching upcoming events',

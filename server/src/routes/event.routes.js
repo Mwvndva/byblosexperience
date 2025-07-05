@@ -16,9 +16,10 @@ import { protect } from '../middleware/organizerAuth.js';
 const router = express.Router();
 
 // Public routes - these don't require authentication
+// Define specific routes before parameterized routes to avoid conflicts
 router.get('/public/upcoming', getUpcomingEvents);
-router.get('/public/:eventId/ticket-types', getEventTicketTypes);
-router.get('/public/:eventId', getPublicEvent);
+router.get('/public/:eventId(\\d+)/ticket-types', getEventTicketTypes); // Only match numeric IDs
+router.get('/public/:eventId(\\d+)', getPublicEvent); // Only match numeric IDs
 
 // Protected routes (require organizer authentication)
 router.use(protect);
