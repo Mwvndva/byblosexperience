@@ -57,7 +57,7 @@ export interface TicketPurchaseResponse {
 export const getUpcomingEvents = async (limit: number = 10): Promise<Event[]> => {
   try {
     console.log(`Fetching ${limit} upcoming events from public API...`);
-    const response = await axios.get(`${API_URL}/events/upcoming`, {
+    const response = await axios.get(`${API_URL}/events/public/upcoming`, {
       params: { limit },
       headers: {
         'Accept': 'application/json',
