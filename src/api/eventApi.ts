@@ -14,7 +14,16 @@ axiosRetry(axios, {
   }
 });
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Ensure API_URL ends with /api but doesn't have a trailing slash
+const getApiBaseUrl = () => {
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3002';
+  // Remove trailing slash if exists
+  const cleanUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+  // Ensure /api is included
+  return cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
+};
+
+const API_URL = getApiBaseUrl();
 
 // Get all upcoming events
 export { type Event } from '@/types/event';
@@ -57,7 +66,7 @@ export interface TicketPurchaseResponse {
 export const getUpcomingEvents = async (limit: number = 10): Promise<Event[]> => {
   try {
     console.log(`Fetching ${limit} upcoming events from public API...`);
-    const response = await axios.get(`${API_URL}/events/public/upcoming`, {
+    const response = await axios.get(`${API_URL}/organizers/events/public/upcoming`, {
       params: { limit },
       headers: {
         'Accept': 'application/json',
@@ -91,7 +100,7 @@ export const getUpcomingEvents = async (limit: number = 10): Promise<Event[]> =>
 // Get event by ID
 export const getEventById = async (id: string | number): Promise<Event> => {
   try {
-    const response = await axios.get(`${API_URL}/events/${id}`, {
+    const response = await axios.get(`${API_URL}/organizers/events/${id}`, {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
@@ -106,7 +115,7 @@ export const getEventById = async (id: string | number): Promise<Event> => {
 
 // Get public event by ID (no authentication required)
 export const getPublicEvent = async (id: string | number): Promise<Event> => {
-  const url = `${API_URL}/events/public/${id}`;
+  const url = `${API_URL}/organizers/events/public/${id}`;
   console.log('Making request to:', url);
   
   try {
@@ -162,7 +171,7 @@ export const getPublicEvent = async (id: string | number): Promise<Event> => {
 // Get ticket types for an event
 export const getEventTicketTypes = async (eventId: number | string): Promise<TicketType[]> => {
   try {
-    const response = await axios.get(`${API_URL}/events/public/${eventId}/ticket-types`);
+    const response = await axios.get(`${API_URL}/organizers/events/public/${eventId}/ticket-types`);
     if (response.data?.status === 'success' && response.data?.data?.event?.ticket_types) {
       return response.data.data.event.ticket_types.map((tt: any) => {
         const sold = parseInt(tt.sold || '0', 10);
