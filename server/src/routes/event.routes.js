@@ -14,29 +14,23 @@ import {
 import { protect } from '../middleware/organizerAuth.js';
 
 const router = express.Router();
-const publicRouter = express.Router();
-const protectedRouter = express.Router();
 
-// Public routes - specific routes must come before parameterized routes
-publicRouter.get('/upcoming', getUpcomingEvents);
-publicRouter.get('/:eventId/ticket-types', getEventTicketTypes); // More specific path first
-publicRouter.get('/:eventId', getPublicEvent);
+// Public routes - these don't require authentication
+router.get('/public/upcoming', getUpcomingEvents);
+router.get('/public/:eventId/ticket-types', getEventTicketTypes);
+router.get('/public/:eventId', getPublicEvent);
 
 // Protected routes (require organizer authentication)
-protectedRouter.use(protect);
+router.use(protect);
 
 // Organizer event routes
-protectedRouter.post('/', createEvent);
-protectedRouter.get('/', getOrganizerEvents);
-protectedRouter.get('/dashboard', getDashboardEvents);
-protectedRouter.get('/:id', getEvent);
-protectedRouter.put('/:id', updateEvent);
-protectedRouter.delete('/:id', deleteEvent);
-protectedRouter.patch('/:id/status', updateEventStatus);
-
-// Mount public and protected routes
-router.use('/public', publicRouter);
-router.use('/', protectedRouter);
+router.post('/', createEvent);
+router.get('/', getOrganizerEvents);
+router.get('/dashboard', getDashboardEvents);
+router.get('/:id', getEvent);
+router.put('/:id', updateEvent);
+router.delete('/:id', deleteEvent);
+router.patch('/:id/status', updateEventStatus);
 
 // Add a catch-all route for 404 errors
 router.use('*', (req, res) => {
