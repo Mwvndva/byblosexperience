@@ -173,6 +173,9 @@ app.use('/api/tickets', ticketRoutes);
 // Mount organizer public routes (login, register, etc.)
 app.use('/api/organizers', organizerRoutes);
 
+// Mount public event routes
+app.use('/api/events', eventRoutes);
+
 // Organizer protected routes
 const protectedRouter = express.Router();
 
@@ -182,7 +185,6 @@ protectedRouter.use(protect);
 // Mount protected routes
 protectedRouter.use('/dashboard', dashboardRoutes);
 protectedRouter.use('/tickets', ticketRoutes); // This will be mounted at /api/organizers/tickets
-protectedRouter.use('/events', eventRoutes); // Mount event routes at /api/organizers/events
 
 // Mount the protected router under /api/organizers
 app.use('/api/organizers', protectedRouter);

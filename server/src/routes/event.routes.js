@@ -14,26 +14,32 @@ import {
 import { protect } from '../middleware/organizerAuth.js';
 
 const router = express.Router();
+const publicRouter = express.Router();
+const protectedRouter = express.Router();
 
 // Public routes
-router.get('/public/upcoming', getUpcomingEvents);
-router.get('/public/:eventId', getPublicEvent);
-router.get('/public/:eventId/ticket-types', getEventTicketTypes);
+publicRouter.get('/upcoming', getUpcomingEvents);
+publicRouter.get('/:eventId', getPublicEvent);
+publicRouter.get('/:eventId/ticket-types', getEventTicketTypes);
 
 // Protected routes (require organizer authentication)
-router.use(protect);
+protectedRouter.use(protect);
 
 // Organizer event routes
-router.post('/', createEvent);
-router.get('/', getOrganizerEvents);
-router.get('/dashboard', getDashboardEvents);
-router.get('/:id', getEvent);
-router.put('/:id', updateEvent);
-router.delete('/:id', deleteEvent);
-router.patch('/:id/status', updateEventStatus);
+protectedRouter.post('/', createEvent);
+protectedRouter.get('/', getOrganizerEvents);
+protectedRouter.get('/dashboard', getDashboardEvents);
+protectedRouter.get('/:id', getEvent);
+protectedRouter.put('/:id', updateEvent);
+protectedRouter.delete('/:id', deleteEvent);
+protectedRouter.patch('/:id/status', updateEventStatus);
+
+// Mount public and protected routes
+router.use('/public', publicRouter);
+router.use('/', protectedRouter);
 
 // Add a catch-all route for 404 errors
-router.use('*', (req, res, next) => {
+router.use('*', (req, res) => {
   res.status(404).json({
     status: 'fail',
     message: `Can't find ${req.originalUrl} on this server!`
