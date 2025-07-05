@@ -399,6 +399,103 @@ const Event = {
     
     return event;
   },
+  
+  async getUpcomingEvents(limit = 10) {
+    // First, get all upcoming events
+    const eventsResult = await pool.query(
+      `SELECT * FROM events 
+       WHERE end_date >= NOW() 
+         AND status = 'published'
+       ORDER BY start_date ASC 
+       LIMIT $1`,
+      [limit]
+    );
+    
+    const events = eventsResult.rows;
+    if (events.length === 0) return [];
+    
+    // Get event IDs for batch loading ticket types
+    const eventIds = events.map(e => e.id);
+    
+    // Get ticket types for all events in one query
+    const ticketTypesResult = await pool.query(
+      `WITH ticket_sales AS (
+        SELECT 
+          ticket_type_id,
+          COUNT(*) as sold
+        FROM tickets
+        WHERE status = 'paid'
+        GROUP BY ticket_type_id
+      )
+      SELECT 
+        tt.*,
+        COALESCE(ts.sold, 0) as sold,
+        GREATEST(0, tt.quantity - COALESCE(ts.sold, 0)) as available
+      FROM ticket_types tt
+      LEFT JOIN ticket_sales ts ON tt.id = ts.ticket_type_id
+      WHERE tt.event_id = ANY($1)
+        AND (tt.sales_start_date IS NULL OR tt.sales_start_date <= NOW())
+        AND (tt.sales_end_date IS NULL OR tt.sales_end_date >= NOW())
+      ORDER BY tt.price ASC`,
+      [eventIds]
+    );
+    
+    // Group ticket types by event ID
+    const ticketTypesByEvent = {};
+    ticketTypesResult.rows.forEach(tt => {
+      if (!ticketTypesByEvent[tt.event_id]) {
+        ticketTypesByEvent[tt.event_id] = [];
+      }
+      ticketTypesByEvent[tt.event_id].push({
+        id: tt.id,
+        name: tt.name,
+        description: tt.description,
+        price: parseFloat(tt.price || '0'),
+        quantity: parseInt(tt.quantity || '0', 10),
+        sold: parseInt(tt.sold || '0', 10),
+        available: parseInt(tt.available || '0', 10),
+        sales_start_date: tt.sales_start_date,
+        sales_end_date: tt.sales_end_date,
+        is_default: false
+      });
+    });
+    
+    // Process events to include ticket types and calculate totals
+    return events.map(event => {
+      const ticketTypes = ticketTypesByEvent[event.id] || [];
+      
+      // If no ticket types, create a default one
+      if (ticketTypes.length === 0) {
+        ticketTypes.push({
+          id: 'default',
+          name: 'General Admission',
+          description: 'General admission ticket',
+          price: parseFloat(event.ticket_price || '0'),
+          quantity: parseInt(event.ticket_quantity || '0', 10),
+          sold: 0,
+          available: parseInt(event.ticket_quantity || '0', 10),
+          sales_start_date: null,
+          sales_end_date: null,
+          is_default: true
+        });
+      }
+      
+      // Calculate totals
+      const totals = ticketTypes.reduce((acc, tt) => ({
+        sold: acc.sold + (tt.sold || 0),
+        available: acc.available + (tt.available || 0),
+        revenue: acc.revenue + ((tt.sold || 0) * (tt.price || 0))
+      }), { sold: 0, available: 0, revenue: 0 });
+      
+      return {
+        ...event,
+        ticket_types: ticketTypes,
+        tickets_sold: totals.sold,
+        available_tickets: totals.available,
+        total_revenue: totals.revenue
+      };
+    });
+  }
 };
 
 export default Event;
