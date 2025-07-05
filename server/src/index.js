@@ -166,6 +166,7 @@ const testConnection = async () => {
 app.use('/api/health', healthRoutes);
 app.use('/api', publicRoutes);
 app.use('/api/sellers', sellerRoutes);
+app.use('/api/events', eventRoutes);
 
 // Mount public ticket routes (validation, confirmation emails)
 app.use('/api/tickets', ticketRoutes);
