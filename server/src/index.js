@@ -214,47 +214,11 @@ app.use('/api/health', healthRoutes);
 app.use('/api', publicRoutes);
 app.use('/api/sellers', sellerRoutes);
 
-// Mount public event routes (for public access to events)
-const publicEventRouter = express.Router();
+// Import the event routes
+import eventRoutes from './routes/event.routes.js';
 
-// Log all incoming requests for debugging
-publicEventRouter.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
-  next();
-});
-
-// Define the public event routes
-// Specific routes first to avoid parameter matching issues
-publicEventRouter.get('/public/upcoming', (req, res, next) => {
-  console.log('GET /public/upcoming route hit');
-  console.log('Query params:', req.query);
-  next();
-}, eventController.getUpcomingEvents);
-
-// Ticket types for a specific event
-publicEventRouter.get('/public/:eventId(\\d+)/ticket-types', (req, res, next) => {
-  console.log(`GET /public/${req.params.eventId}/ticket-types route hit`);
-  next();
-}, eventController.getEventTicketTypes);
-
-// Specific event by ID (must be after specific routes)
-publicEventRouter.get('/public/:eventId(\\d+)', (req, res, next) => {
-  console.log(`GET /public/${req.params.eventId} route hit`);
-  next();
-}, eventController.getPublicEvent);
-
-// Catch-all for invalid routes
-publicEventRouter.all('*', (req, res) => {
-  console.log(`404: Route not found: ${req.method} ${req.originalUrl}`);
-  res.status(404).json({
-    status: 'error',
-    message: 'Route not found',
-    path: req.path
-  });
-});
-
-// Mount the public event router under /api/events
-app.use('/api/events', publicEventRouter);
+// Mount the event routes
+app.use('/api/events', eventRoutes);
 
 // Mount public ticket routes (validation, confirmation emails)
 app.use('/api/tickets', ticketRoutes);

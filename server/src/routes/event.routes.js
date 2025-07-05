@@ -17,55 +17,105 @@ const router = express.Router();
 
 // Debug middleware to log all incoming requests
 router.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  const requestId = req.id || 'no-request-id';
+  console.log(`[${new Date().toISOString()}] [${requestId}] ${req.method} ${req.originalUrl}`);
   next();
 });
 
-// Public routes - these don't require authentication
-// 1. Specific static routes first
+// ==============================================
+// PUBLIC ROUTES - No authentication required
+// ==============================================
+
+// 1. Get upcoming events (public)
 router.get('/public/upcoming', (req, res, next) => {
-  console.log('GET /public/upcoming route hit');
-  console.log('Query params:', req.query);
+  const requestId = req.id || 'no-request-id';
+  console.log(`[${requestId}] GET /public/upcoming`);
+  console.log(`[${requestId}] Query params:`, req.query);
   next();
 }, getUpcomingEvents);
 
-// 2. Specific parameterized routes next
+// 2. Get ticket types for a specific event (public)
 router.get('/public/:eventId(\\d+)/ticket-types', (req, res, next) => {
-  console.log(`GET /public/${req.params.eventId}/ticket-types route hit`);
+  const requestId = req.id || 'no-request-id';
+  console.log(`[${requestId}] GET /public/${req.params.eventId}/ticket-types`);
   next();
 }, getEventTicketTypes);
 
+// 3. Get public event details (public)
 router.get('/public/:eventId(\\d+)', (req, res, next) => {
-  console.log(`GET /public/${req.params.eventId} route hit`);
+  const requestId = req.id || 'no-request-id';
+  console.log(`[${requestId}] GET /public/${req.params.eventId}`);
   next();
 }, getPublicEvent);
 
-// 3. Catch-all for invalid public event IDs
+// 4. Catch-all for invalid public event IDs
 router.get('/public/:eventId([^0-9]+)', (req, res) => {
-  console.log(`Invalid event ID format: ${req.params.eventId}`);
-  res.status(404).json({
+  const requestId = req.id || 'no-request-id';
+  console.log(`[${requestId}] Invalid event ID format: ${req.params.eventId}`);
+  res.status(400).json({
     status: 'error',
-    message: 'Event not found. Event ID must be a number.'
+    message: 'Invalid event ID format. Event ID must be a number.',
+    requestId
   });
 });
 
-// Protected routes (require organizer authentication)
+// ==============================================
+// PROTECTED ROUTES - Require authentication
+// ==============================================
 router.use(protect);
 
-// Organizer event routes
+// Create a new event
 router.post('/', createEvent);
+
+// Get all events for the authenticated organizer
 router.get('/', getOrganizerEvents);
+
+// Get dashboard events (with stats)
 router.get('/dashboard', getDashboardEvents);
-router.get('/:id', getEvent);
-router.put('/:id', updateEvent);
-router.delete('/:id', deleteEvent);
-router.patch('/:id/status', updateEventStatus);
+
+// Get a specific event by ID (protected)
+router.get('/:id(\\d+)', getEvent);
+
+// Update an event
+router.put('/:id(\\d+)', updateEvent);
+
+// Delete an event
+router.delete('/:id(\\d+)', deleteEvent);
+
+// Update event status
+router.patch('/:id(\\d+)/status', updateEventStatus);
+
+// ==============================================
+// ERROR HANDLING
+// ==============================================
 
 // 404 handler for undefined routes
 router.use('*', (req, res) => {
+  const requestId = req.id || 'no-request-id';
+  console.log(`[${requestId}] 404: Route not found: ${req.method} ${req.originalUrl}`);
+  
   res.status(404).json({
-    status: 'fail',
-    message: `Can't find ${req.originalUrl} on this server!`
+    status: 'error',
+    message: `Cannot ${req.method} ${req.originalUrl}`,
+    requestId
+  });
+});
+
+// Error handling middleware
+router.use((err, req, res, next) => {
+  const requestId = req.id || 'no-request-id';
+  console.error(`[${requestId}] Error in event routes:`, {
+    message: err.message,
+    stack: err.stack,
+    url: req.originalUrl,
+    method: req.method
+  });
+  
+  res.status(500).json({
+    status: 'error',
+    message: 'Internal server error',
+    ...(process.env.NODE_ENV === 'development' && { error: err.message }),
+    requestId
   });
 });
 

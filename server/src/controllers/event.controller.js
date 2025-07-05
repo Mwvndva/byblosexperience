@@ -315,37 +315,165 @@ export const createEvent = async (req, res) => {
       ...(process.env.NODE_ENV === 'development' && { 
         error: error.message,
         stack: error.stack 
-      })
     });
-  }
-};
-
-export const getEvent = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const event = await Event.findById(id);
-
-    if (!event) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Event not found'
+  } else if (ticketTypes && ticketTypes.length > 0) {
+    // Validate and prepare provided ticket types
+    for (const [index, type] of ticketTypes.entries()) {
+      if (!type.name) {
+        throw new Error(`Ticket type ${index + 1} is missing a name`);
+      }
+      if (type.price === undefined || type.price === null) {
+        throw new Error(`Ticket type "${type.name}" is missing a price`);
+      }
+      if (type.quantity === undefined || type.quantity === null) {
+        throw new Error(`Ticket type "${type.name}" is missing a quantity`);
+      }
+      
+      const price = typeof type.price === 'string' ? parseFloat(type.price) : Number(type.price);
+      const quantity = typeof type.quantity === 'string' ? 
+        parseInt(type.quantity, 10) : 
+        Math.max(1, Math.floor(Number(type.quantity) || 1));
+        
+      if (isNaN(price) || price < 0) {
+        throw new Error(`Invalid price for ticket type "${type.name}"`);
+      }
+      if (isNaN(quantity) || quantity < 1) {
+        throw new Error(`Invalid quantity for ticket type "${type.name}"`);
+      }
+      
+      // Handle dates safely
+      let salesStartDate = null;
+      let salesEndDate = null;
+      
+      try {
+        salesStartDate = type.salesStartDate ? new Date(type.salesStartDate) : null;
+        salesEndDate = type.salesEndDate ? new Date(type.salesEndDate) : null;
+        
+        // Validate dates
+        if (salesStartDate && isNaN(salesStartDate.getTime())) {
+          throw new Error(`Invalid sales start date for ticket type "${type.name}"`);
+        }
+        if (salesEndDate && isNaN(salesEndDate.getTime())) {
+          throw new Error(`Invalid sales end date for ticket type "${type.name}"`);
+        }
+      } catch (dateError) {
+        console.error('Error parsing dates:', dateError);
+        throw new Error(`Invalid date format for ticket type "${type.name}"`);
+      }
+      
+      ticketsToInsert.push({
+        name: type.name,
+        description: type.description || '',
+        price: price,
+        quantity: quantity,
+        sales_start_date: salesStartDate,
+        sales_end_date: salesEndDate
       });
     }
+  } else {
+    throw new Error('Either provide ticket_quantity and ticket_price or at least one ticket type');
+  }
 
-    res.status(200).json({
-      status: 'success',
-      data: {
-        event
+  // Insert ticket types if any
+  if (ticketsToInsert.length > 0) {
+    console.log('Preparing to insert ticket types:', ticketsToInsert);
+    
+    // Insert tickets one by one to get better error messages
+    for (const ticket of ticketsToInsert) {
+      console.log('Inserting ticket:', ticket);
+      try {
+        await client.query(
+          `INSERT INTO public.ticket_types (
+            event_id, name, description, price, quantity, sales_start_date, sales_end_date,
+            created_at, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
+          [
+            event.id,
+            ticket.name,
+            ticket.description || null,
+            ticket.price,
+            ticket.quantity,
+            ticket.sales_start_date || null,
+            ticket.sales_end_date || null
+          ]
+        );
+        console.log('Successfully inserted ticket type:', ticket.name);
+      } catch (ticketError) {
+        console.error('Error inserting ticket:', ticket, 'Error:', ticketError);
+        throw new Error(`Failed to insert ticket type ${ticket.name}: ${ticketError.message}`);
       }
-    });
-  } catch (error) {
-    console.error('Get event error:', error);
-    res.status(500).json({
+    }
+  }
+
+  await client.query('COMMIT');
+
+  res.status(201).json({
+    status: 'success',
+    data: {
+      event
+    }
+  });
+} catch (error) {
+  await client.query('ROLLBACK');
+  console.error('Create event error:', error);
+  
+  // Handle specific error cases
+  if (error.code === '23505') { // Unique violation
+    return res.status(400).json({
       status: 'error',
-      message: 'An error occurred while fetching the event',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'An event with similar details already exists.'
     });
   }
+  
+  res.status(500).json({
+    status: 'error',
+    message: error.message || 'An error occurred while creating the event',
+    ...(process.env.NODE_ENV === 'development' && { 
+      error: error.message,
+      stack: error.stack 
+    })
+  });
+} finally {
+  client.release();
+}
+} catch (error) {
+console.error('Error in createEvent:', error);
+res.status(500).json({
+  status: 'error',
+  message: 'An unexpected error occurred while creating the event',
+  ...(process.env.NODE_ENV === 'development' && { 
+    error: error.message,
+    stack: error.stack 
+  })
+});
+}
+
+export const getEvent = async (req, res) => {
+try {
+  const { id } = req.params;
+  const event = await Event.findById(id);
+
+  if (!event) {
+    return res.status(404).json({
+      status: 'error',
+      message: 'Event not found'
+    });
+  }
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      event
+    }
+  });
+} catch (error) {
+  console.error('Get event error:', error);
+  res.status(500).json({
+    status: 'error',
+    message: 'An error occurred while fetching the event',
+    error: process.env.NODE_ENV === 'development' ? error.message : undefined
+  });
+}
 };
 
 export const getOrganizerEvents = async (req, res) => {
@@ -786,29 +914,29 @@ export const updateEventStatus = async (req, res) => {
 export const getUpcomingEvents = async (req, res) => {
   const requestId = req.id || 'no-request-id';
   
-  console.log(`[${new Date().toISOString()}] [${requestId}] === getUpcomingEvents controller called ===`);
-  console.log(`[${requestId}] Request URL: ${req.originalUrl}`);
-  console.log(`[${requestId}] Request method: ${req.method}`);
-  console.log(`[${requestId}] Request query:`, req.query);
-  console.log(`[${requestId}] Request params:`, req.params);
-  
   try {
-    // Parse and validate limit
-    const limit = Math.min(parseInt(req.query.limit, 10) || 10, 100);
-    console.log(`[${requestId}] Parsed limit:`, limit);
+    console.log(`[${requestId}] === getUpcomingEvents controller called ===`);
+    console.log(`[${requestId}] Request URL: ${req.originalUrl}`);
+    console.log(`[${requestId}] Query params:`, req.query);
+    
+    // Parse and validate limit parameter
+    const limit = parseInt(req.query.limit, 10) || 20; // Default to 20 if not specified
     
     if (isNaN(limit) || limit < 1) {
-      console.error(`[${requestId}] Invalid limit parameter:`, req.query.limit);
+      const errorMsg = `Invalid limit parameter: ${req.query.limit}. Must be a positive number.`;
+      console.error(`[${requestId}] ${errorMsg}`);
       return res.status(400).json({
         status: 'error',
-        message: 'Invalid limit parameter. Must be a positive number.'
+        message: 'Invalid limit parameter. Must be a positive number.',
+        requestId,
+        receivedLimit: req.query.limit
       });
     }
     
-    console.log(`[${requestId}] Fetching ${limit} upcoming events from database...`);
-    const events = await Event.getUpcomingEvents(limit);
+    console.log(`[${requestId}] Fetching up to ${limit} upcoming events`);
     
-    console.log(`[${requestId}] Found ${events.length} upcoming events`);
+    // Get upcoming events from the model
+    const events = await Event.getUpcomingEvents(limit);
     
     if (!Array.isArray(events)) {
       console.error(`[${requestId}] Expected events to be an array, got:`, typeof events);
@@ -819,56 +947,46 @@ export const getUpcomingEvents = async (req, res) => {
       });
     }
     
-    if (events.length > 0) {
-      console.log(`[${requestId}] Sample event:`, {
-        id: events[0].id,
-        name: events[0].name,
-        start_date: events[0].start_date,
-        end_date: events[0].end_date,
-        status: events[0].status,
-        ticket_quantity: events[0].ticket_quantity,
-        available_tickets: events[0].available_tickets
-      });
-    } else {
-      console.log(`[${requestId}] No upcoming events found in the database`);
-      // Return empty array instead of 404 when no events are found
-      return res.status(200).json([]);
-    }
+    console.log(`[${requestId}] Found ${events.length} upcoming events`);
     
-    // Format the events data to match frontend expectations
+    // Format the events data to ensure consistent structure
     const formattedEvents = events.map(event => ({
       id: event.id,
-      name: event.name,
-      description: event.description,
-      image_url: event.image_url,
-      location: event.location,
+      name: event.name || 'Unnamed Event',
+      description: event.description || '',
+      location: event.location || 'Location not specified',
       start_date: event.start_date,
       end_date: event.end_date,
-      ticket_price: parseFloat(event.ticket_price || 0),
-      ticket_quantity: parseInt(event.ticket_quantity || 0, 10),
-      available_tickets: parseInt(event.available_tickets || event.ticket_quantity || 0, 10),
-      status: event.status,
+      image_url: event.image_url || '/images/default-event.jpg',
+      status: event.status || 'draft',
+      ticket_quantity: parseInt(event.ticket_quantity || '0', 10),
+      available_tickets: parseInt(event.available_tickets || '0', 10),
+      ticket_price: parseFloat(event.ticket_price || '0'),
+      organizer_id: event.organizer_id,
       created_at: event.created_at,
       updated_at: event.updated_at,
-      organizer_id: event.organizer_id
+      // Include any additional fields that might be needed by the frontend
+      ...(event.ticket_types && { ticket_types: event.ticket_types })
     }));
     
-    console.log(`[${requestId}] Sending response with ${formattedEvents.length} events`);
+    console.log(`[${requestId}] Successfully retrieved ${formattedEvents.length} upcoming events`);
+    
+    // Return the formatted events
     return res.status(200).json(formattedEvents);
+    
   } catch (error) {
-    console.error('Get upcoming events error:', {
+    console.error(`[${requestId}] Error in getUpcomingEvents:`, {
       message: error.message,
       stack: error.stack,
-      query: req.query,
-      params: req.params,
-      url: req.originalUrl
+      originalUrl: req.originalUrl,
+      query: req.query
     });
     
     return res.status(500).json({
       status: 'error',
       message: 'An error occurred while fetching upcoming events',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
-      requestId: req.id
+      requestId,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
