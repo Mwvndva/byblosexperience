@@ -5,6 +5,12 @@ import { fileURLToPath } from 'url';
 import { mkdir } from 'fs/promises';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import mongoSanitize from 'express-mongo-sanitize';
+import { xss } from 'express-xss-sanitizer';
+import hpp from 'hpp';
+import cookieParser from 'cookie-parser';
 import organizerRoutes from './routes/organizer.routes.js';
 import sellerRoutes from './routes/seller.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
@@ -15,6 +21,7 @@ import eventRoutes from './routes/event.routes.js';
 import { pool, testConnection as testDbConnection } from './config/database.js';
 import { globalErrorHandler, notFoundHandler } from './utils/errorHandler.js';
 import { protect } from './middleware/auth.js';
+import requestId from './middleware/requestId.js';
 
 // Get the current directory
 const __filename = fileURLToPath(import.meta.url);
@@ -41,6 +48,55 @@ console.log({
 
 // Create Express app
 const app = express();
+
+// Add request ID middleware (must be first)
+app.use(requestId);
+
+// Set security HTTP headers
+app.use(helmet());
+
+// Enable CORS with specific origin
+const corsOptions = {
+  origin: (origin, callback) => {
+    const allowedOrigins = [
+      'https://byblosexperience.vercel.app',
+      'http://localhost:5173',
+      'https://byblosexperience.onrender.com'
+    ];
+    
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`Blocked request from origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
+};
+
+app.use(cors(corsOptions));
+
+// Log all requests
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} [${req.id}]`);
+  next();
+});
+
+// Limit requests from same API
+const limiter = rateLimit({
+  max: 100,
+  windowMs: 60 * 60 * 1000,
+  message: 'Too many requests from this IP, please try again in an hour!',
+  keyGenerator: (req) => {
+    // Use both IP and request ID for rate limiting
+    return `${req.ip}:${req.id}`;
+  }
+});
+
+app.use('/api', limiter);
 
 // Serve static files from uploads directory
 const uploadsDir = path.join(process.cwd(), 'uploads');

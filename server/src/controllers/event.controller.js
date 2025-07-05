@@ -788,10 +788,12 @@ export const getUpcomingEvents = async (req, res) => {
   console.log('Request URL:', req.originalUrl);
   console.log('Request method:', req.method);
   console.log('Request query:', req.query);
+  console.log('Request params:', req.params);
+  console.log('Request headers:', req.headers);
   
   try {
     // Parse and validate limit
-    const limit = Math.min(parseInt(req.query.limit, 10) || 10, 100); // Cap at 100 events
+    const limit = Math.min(parseInt(req.query.limit, 10) || 10, 100);
     console.log('Parsed limit:', limit);
     
     if (isNaN(limit) || limit < 1) {
@@ -811,24 +813,30 @@ export const getUpcomingEvents = async (req, res) => {
         id: events[0].id,
         name: events[0].name,
         start_date: events[0].start_date,
-        end_date: events[0].end_date
+        end_date: events[0].end_date,
+        status: events[0].status
       });
+    } else {
+      console.log('No upcoming events found in the database');
     }
     
     // Return events array directly for public API
     console.log('Sending response with events');
-    res.status(200).json(events);
+    return res.status(200).json(events);
   } catch (error) {
     console.error('Get upcoming events error:', {
       message: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-      query: req.query
+      stack: error.stack,
+      query: req.query,
+      params: req.params,
+      url: req.originalUrl
     });
     
-    res.status(500).json({
+    return res.status(500).json({
       status: 'error',
       message: 'An error occurred while fetching upcoming events',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      requestId: req.id
     });
   }
 };
