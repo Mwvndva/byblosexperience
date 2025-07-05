@@ -784,45 +784,77 @@ export const updateEventStatus = async (req, res) => {
 };
 
 export const getUpcomingEvents = async (req, res) => {
-  console.log('=== getUpcomingEvents controller called ===');
-  console.log('Request URL:', req.originalUrl);
-  console.log('Request method:', req.method);
-  console.log('Request query:', req.query);
-  console.log('Request params:', req.params);
-  console.log('Request headers:', req.headers);
+  const requestId = req.id || 'no-request-id';
+  
+  console.log(`[${new Date().toISOString()}] [${requestId}] === getUpcomingEvents controller called ===`);
+  console.log(`[${requestId}] Request URL: ${req.originalUrl}`);
+  console.log(`[${requestId}] Request method: ${req.method}`);
+  console.log(`[${requestId}] Request query:`, req.query);
+  console.log(`[${requestId}] Request params:`, req.params);
   
   try {
     // Parse and validate limit
     const limit = Math.min(parseInt(req.query.limit, 10) || 10, 100);
-    console.log('Parsed limit:', limit);
+    console.log(`[${requestId}] Parsed limit:`, limit);
     
     if (isNaN(limit) || limit < 1) {
-      console.error('Invalid limit parameter:', req.query.limit);
+      console.error(`[${requestId}] Invalid limit parameter:`, req.query.limit);
       return res.status(400).json({
         status: 'error',
         message: 'Invalid limit parameter. Must be a positive number.'
       });
     }
     
-    console.log(`Fetching ${limit} upcoming events from database...`);
+    console.log(`[${requestId}] Fetching ${limit} upcoming events from database...`);
     const events = await Event.getUpcomingEvents(limit);
     
-    console.log(`Found ${events.length} upcoming events`);
+    console.log(`[${requestId}] Found ${events.length} upcoming events`);
+    
+    if (!Array.isArray(events)) {
+      console.error(`[${requestId}] Expected events to be an array, got:`, typeof events);
+      return res.status(500).json({
+        status: 'error',
+        message: 'Unexpected response format from database',
+        requestId
+      });
+    }
+    
     if (events.length > 0) {
-      console.log('Sample event:', {
+      console.log(`[${requestId}] Sample event:`, {
         id: events[0].id,
         name: events[0].name,
         start_date: events[0].start_date,
         end_date: events[0].end_date,
-        status: events[0].status
+        status: events[0].status,
+        ticket_quantity: events[0].ticket_quantity,
+        available_tickets: events[0].available_tickets
       });
     } else {
-      console.log('No upcoming events found in the database');
+      console.log(`[${requestId}] No upcoming events found in the database`);
+      // Return empty array instead of 404 when no events are found
+      return res.status(200).json([]);
     }
     
-    // Return events array directly for public API
-    console.log('Sending response with events');
-    return res.status(200).json(events);
+    // Format the events data to match frontend expectations
+    const formattedEvents = events.map(event => ({
+      id: event.id,
+      name: event.name,
+      description: event.description,
+      image_url: event.image_url,
+      location: event.location,
+      start_date: event.start_date,
+      end_date: event.end_date,
+      ticket_price: parseFloat(event.ticket_price || 0),
+      ticket_quantity: parseInt(event.ticket_quantity || 0, 10),
+      available_tickets: parseInt(event.available_tickets || event.ticket_quantity || 0, 10),
+      status: event.status,
+      created_at: event.created_at,
+      updated_at: event.updated_at,
+      organizer_id: event.organizer_id
+    }));
+    
+    console.log(`[${requestId}] Sending response with ${formattedEvents.length} events`);
+    return res.status(200).json(formattedEvents);
   } catch (error) {
     console.error('Get upcoming events error:', {
       message: error.message,

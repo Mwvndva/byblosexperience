@@ -216,9 +216,31 @@ app.use('/api/sellers', sellerRoutes);
 
 // Mount public event routes (for public access to events)
 const publicEventRouter = express.Router();
-publicEventRouter.get('/public/upcoming', eventController.getUpcomingEvents);
-publicEventRouter.get('/public/:eventId(\\d+)/ticket-types', eventController.getEventTicketTypes);
-publicEventRouter.get('/public/:eventId(\\d+)', eventController.getPublicEvent);
+
+// Log all incoming requests for debugging
+publicEventRouter.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  next();
+});
+
+// Define the public event routes
+publicEventRouter.get('/public/upcoming', (req, res, next) => {
+  console.log('GET /public/upcoming route hit');
+  console.log('Query params:', req.query);
+  next();
+}, eventController.getUpcomingEvents);
+
+publicEventRouter.get('/public/:eventId(\\d+)/ticket-types', (req, res, next) => {
+  console.log(`GET /public/${req.params.eventId}/ticket-types route hit`);
+  next();
+}, eventController.getEventTicketTypes);
+
+publicEventRouter.get('/public/:eventId(\\d+)', (req, res, next) => {
+  console.log(`GET /public/${req.params.eventId} route hit`);
+  next();
+}, eventController.getPublicEvent);
+
+// Mount the public event router under /api/events
 app.use('/api/events', publicEventRouter);
 
 // Mount public ticket routes (validation, confirmation emails)

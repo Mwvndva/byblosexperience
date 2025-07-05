@@ -427,100 +427,147 @@ const Event = {
   },
   
   async getUpcomingEvents(limit = 10) {
-    // First, get all upcoming events
-    const eventsResult = await pool.query(
-      `SELECT * FROM events 
-       WHERE end_date >= NOW() 
-         AND status = 'published'
-       ORDER BY start_date ASC 
-       LIMIT $1`,
-      [limit]
-    );
+    console.log(`[EventModel] Fetching up to ${limit} upcoming events`);
     
-    const events = eventsResult.rows;
-    if (events.length === 0) return [];
-    
-    // Get event IDs for batch loading ticket types
-    const eventIds = events.map(e => e.id);
-    
-    // Get ticket types for all events in one query
-    const ticketTypesResult = await pool.query(
-      `WITH ticket_sales AS (
-        SELECT 
-          ticket_type_id,
-          COUNT(*) as sold
-        FROM tickets
-        WHERE status = 'paid'
-        GROUP BY ticket_type_id
-      )
-      SELECT 
-        tt.*,
-        COALESCE(ts.sold, 0) as sold,
-        GREATEST(0, tt.quantity - COALESCE(ts.sold, 0)) as available
-      FROM ticket_types tt
-      LEFT JOIN ticket_sales ts ON tt.id = ts.ticket_type_id
-      WHERE tt.event_id = ANY($1)
-        AND (tt.sales_start_date IS NULL OR tt.sales_start_date <= NOW())
-        AND (tt.sales_end_date IS NULL OR tt.sales_end_date >= NOW())
-      ORDER BY tt.price ASC`,
-      [eventIds]
-    );
-    
-    // Group ticket types by event ID
-    const ticketTypesByEvent = {};
-    ticketTypesResult.rows.forEach(tt => {
-      if (!ticketTypesByEvent[tt.event_id]) {
-        ticketTypesByEvent[tt.event_id] = [];
+    try {
+      // First, get all upcoming events
+      const eventsResult = await pool.query(
+        `SELECT * FROM events 
+         WHERE end_date >= NOW() 
+           AND status = 'published'
+         ORDER BY start_date ASC 
+         LIMIT $1`,
+        [limit]
+      );
+      
+      const events = eventsResult.rows;
+      console.log(`[EventModel] Found ${events.length} events in database`);
+      
+      if (events.length === 0) {
+        console.log('[EventModel] No upcoming events found in the database');
+        return [];
       }
-      ticketTypesByEvent[tt.event_id].push({
-        id: tt.id,
-        name: tt.name,
-        description: tt.description,
-        price: parseFloat(tt.price || '0'),
-        quantity: parseInt(tt.quantity || '0', 10),
-        sold: parseInt(tt.sold || '0', 10),
-        available: parseInt(tt.available || '0', 10),
-        sales_start_date: tt.sales_start_date,
-        sales_end_date: tt.sales_end_date,
-        is_default: false
+      
+      // Log sample event data
+      console.log('[EventModel] Sample event from DB:', {
+        id: events[0].id,
+        name: events[0].name,
+        start_date: events[0].start_date,
+        end_date: events[0].end_date,
+        status: events[0].status,
+        ticket_quantity: events[0].ticket_quantity
       });
-    });
-    
-    // Process events to include ticket types and calculate totals
-    return events.map(event => {
-      const ticketTypes = ticketTypesByEvent[event.id] || [];
       
-      // If no ticket types, create a default one
-      if (ticketTypes.length === 0) {
-        ticketTypes.push({
-          id: 'default',
-          name: 'General Admission',
-          description: 'General admission ticket',
-          price: parseFloat(event.ticket_price || '0'),
-          quantity: parseInt(event.ticket_quantity || '0', 10),
-          sold: 0,
-          available: parseInt(event.ticket_quantity || '0', 10),
-          sales_start_date: null,
-          sales_end_date: null,
-          is_default: true
-        });
-      }
+      // Get event IDs for batch loading ticket types
+      const eventIds = events.map(e => e.id);
       
-      // Calculate totals
-      const totals = ticketTypes.reduce((acc, tt) => ({
-        sold: acc.sold + (tt.sold || 0),
-        available: acc.available + (tt.available || 0),
-        revenue: acc.revenue + ((tt.sold || 0) * (tt.price || 0))
-      }), { sold: 0, available: 0, revenue: 0 });
+      // Get ticket types for all events in one query
+      const ticketTypesResult = await pool.query(
+        `WITH ticket_sales AS (
+          SELECT 
+            ticket_type_id,
+            COUNT(*) as sold
+          FROM tickets
+          WHERE status = 'paid'
+          GROUP BY ticket_type_id
+        )
+        SELECT 
+          tt.*,
+          COALESCE(ts.sold, 0) as sold,
+          GREATEST(0, tt.quantity - COALESCE(ts.sold, 0)) as available
+        FROM ticket_types tt
+        LEFT JOIN ticket_sales ts ON tt.id = ts.ticket_type_id
+        WHERE tt.event_id = ANY($1)
+          AND (tt.sales_start_date IS NULL OR tt.sales_start_date <= NOW())
+          AND (tt.sales_end_date IS NULL OR tt.sales_end_date >= NOW())
+        ORDER BY tt.price ASC`,
+        [eventIds]
+      );
       
-      return {
-        ...event,
-        ticket_types: ticketTypes,
-        tickets_sold: totals.sold,
-        available_tickets: totals.available,
-        total_revenue: totals.revenue
-      };
-    });
+      console.log(`[EventModel] Found ${ticketTypesResult.rows.length} ticket types across all events`);
+      
+      // Group ticket types by event ID
+      const ticketTypesByEvent = {};
+      ticketTypesResult.rows.forEach(tt => {
+        if (!ticketTypesByEvent[tt.event_id]) {
+          ticketTypesByEvent[tt.event_id] = [];
+        }
+        const ticketType = {
+          id: tt.id,
+          name: tt.name,
+          description: tt.description,
+          price: parseFloat(tt.price || '0'),
+          quantity: parseInt(tt.quantity || '0', 10),
+          sold: parseInt(tt.sold || '0', 10),
+          available: parseInt(tt.available || '0', 10),
+          sales_start_date: tt.sales_start_date,
+          sales_end_date: tt.sales_end_date,
+          is_default: false
+        };
+        ticketTypesByEvent[tt.event_id].push(ticketType);
+      });
+      
+      // Process events to include ticket types and calculate totals
+      const processedEvents = events.map(event => {
+        const ticketTypes = ticketTypesByEvent[event.id] || [];
+        
+        // If no ticket types, create a default one
+        if (ticketTypes.length === 0) {
+          console.log(`[EventModel] No ticket types found for event ${event.id}, creating default`);
+          const defaultTicket = {
+            id: 'default',
+            name: 'General Admission',
+            description: 'General admission ticket',
+            price: parseFloat(event.ticket_price || '0'),
+            quantity: parseInt(event.ticket_quantity || '0', 10),
+            sold: 0,
+            available: parseInt(event.ticket_quantity || '0', 10),
+            sales_start_date: null,
+            sales_end_date: null,
+            is_default: true
+          };
+          ticketTypes.push(defaultTicket);
+        }
+        
+        // Calculate totals
+        const totals = ticketTypes.reduce((acc, tt) => ({
+          sold: acc.sold + (tt.sold || 0),
+          available: acc.available + (tt.available || 0),
+          revenue: acc.revenue + ((tt.sold || 0) * (tt.price || 0))
+        }), { sold: 0, available: 0, revenue: 0 });
+        
+        // Format the event with all required fields
+        const formattedEvent = {
+          ...event,
+          ticket_types: ticketTypes,
+          tickets_sold: totals.sold,
+          available_tickets: totals.available,
+          total_revenue: totals.revenue,
+          // Ensure all required fields have default values
+          name: event.name || 'Unnamed Event',
+          description: event.description || '',
+          image_url: event.image_url || '/images/default-event.jpg',
+          location: event.location || 'Location not specified',
+          start_date: event.start_date,
+          end_date: event.end_date,
+          ticket_price: parseFloat(event.ticket_price || '0'),
+          ticket_quantity: parseInt(event.ticket_quantity || '0', 10)
+        };
+        
+        return formattedEvent;
+      });
+      
+      console.log(`[EventModel] Successfully processed ${processedEvents.length} events`);
+      return processedEvents;
+      
+    } catch (error) {
+      console.error('[EventModel] Error in getUpcomingEvents:', {
+        message: error.message,
+        stack: error.stack,
+        limit: limit
+      });
+      throw error; // Re-throw to be handled by the controller
+    }
   }
 };
 
