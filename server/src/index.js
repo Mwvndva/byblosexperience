@@ -17,7 +17,7 @@ import dashboardRoutes from './routes/dashboard.routes.js';
 import publicRoutes from './routes/public.routes.js';
 import healthRoutes from './routes/health.routes.js';
 import ticketRoutes from './routes/ticket.routes.js';
-import eventRoutes from './routes/event.routes.js';
+import * as eventController from './controllers/event.controller.js';
 import { pool, testConnection as testDbConnection } from './config/database.js';
 import { globalErrorHandler, notFoundHandler } from './utils/errorHandler.js';
 import { protect } from './middleware/auth.js';
@@ -209,13 +209,17 @@ app.use((req, res, next) => {
   next();
 });
 
-// Routes - Public routes first to ensure they take precedence
+// Mount public routes first (no authentication required)
 app.use('/api/health', healthRoutes);
 app.use('/api', publicRoutes);
 app.use('/api/sellers', sellerRoutes);
 
 // Mount public event routes (for public access to events)
-app.use('/api/events', eventRoutes);
+const publicEventRouter = express.Router();
+publicEventRouter.get('/public/upcoming', eventController.getUpcomingEvents);
+publicEventRouter.get('/public/:eventId(\\d+)/ticket-types', eventController.getEventTicketTypes);
+publicEventRouter.get('/public/:eventId(\\d+)', eventController.getPublicEvent);
+app.use('/api/events', publicEventRouter);
 
 // Mount public ticket routes (validation, confirmation emails)
 app.use('/api/tickets', ticketRoutes);
@@ -233,9 +237,16 @@ protectedRouter.use(protect);
 protectedRouter.use('/dashboard', dashboardRoutes);
 protectedRouter.use('/tickets', ticketRoutes); // This will be mounted at /api/organizers/tickets
 
-// Mount event routes under /api/organizers/events for backward compatibility
-// These routes will be protected by the protect middleware
-protectedRouter.use('/events', eventRoutes);
+// Mount protected event routes under /api/organizers/events
+const protectedEventRouter = express.Router();
+protectedEventRouter.get('/', eventController.getOrganizerEvents);
+protectedEventRouter.post('/', eventController.createEvent);
+protectedEventRouter.get('/dashboard', eventController.getDashboardEvents);
+protectedEventRouter.get('/:id', eventController.getEvent);
+protectedEventRouter.put('/:id', eventController.updateEvent);
+protectedEventRouter.delete('/:id', eventController.deleteEvent);
+protectedEventRouter.patch('/:id/status', eventController.updateEventStatus);
+protectedRouter.use('/events', protectedEventRouter);
 
 // Mount the protected router under /api/organizers
 app.use('/api/organizers', protectedRouter);
