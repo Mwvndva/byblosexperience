@@ -207,3 +207,84 @@ export const createEvent = async (req, res) => {
     }
   }
 };
+
+/**
+ * Delete an event
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+export const deleteEvent = async (req, res) => {
+  const client = await pool.connect();
+  
+  try {
+    const { id } = req.params;
+    const organizerId = req.user?.id;
+
+    if (!organizerId) {
+      return res.status(401).json({
+        status: 'error',
+        message: 'Authentication required'
+      });
+    }
+
+    // Start transaction
+    await client.query('BEGIN');
+
+    // First, check if the event exists and belongs to the organizer
+    const eventResult = await client.query(
+      'SELECT id, organizer_id FROM events WHERE id = $1',
+      [id]
+    );
+
+    if (eventResult.rows.length === 0) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Event not found'
+      });
+    }
+
+    const event = eventResult.rows[0];
+
+    // Check if the authenticated user is the organizer of the event
+    if (event.organizer_id !== organizerId) {
+      return res.status(403).json({
+        status: 'error',
+        message: 'Not authorized to delete this event'
+      });
+    }
+
+    // Delete related records first to maintain referential integrity
+    await client.query('DELETE FROM ticket_types WHERE event_id = $1', [id]);
+    
+    // Delete the event
+    await client.query('DELETE FROM events WHERE id = $1', [id]);
+    
+    // Commit the transaction
+    await client.query('COMMIT');
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Event deleted successfully'
+    });
+
+  } catch (error) {
+    // Rollback transaction on error
+    await client.query('ROLLBACK');
+    
+    console.error('Delete event error:', error);
+    
+    res.status(500).json({
+      status: 'error',
+      message: 'An error occurred while deleting the event',
+      ...(process.env.NODE_ENV === 'development' && {
+        error: error.message,
+        stack: error.stack
+      })
+    });
+  } finally {
+    // Always release the client back to the pool
+    if (client) {
+      client.release();
+    }
+  }
+};
