@@ -1070,11 +1070,21 @@ export const getPublicEvent = async (req, res) => {
       });
     }
     
-    console.log('Fetching public event with ID:', eventId);
-    const event = await Event.getPublicEvent(eventId);
+    // Validate that eventId is a valid integer
+    const parsedId = parseInt(eventId, 10);
+    if (isNaN(parsedId)) {
+      console.error('Error: Invalid event ID format:', eventId);
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid event ID format. Must be a number.'
+      });
+    }
+    
+    console.log('Fetching public event with ID:', parsedId);
+    const event = await Event.getPublicEvent(parsedId);
     
     if (!event) {
-      console.error('Event not found or not published for ID:', eventId);
+      console.error('Event not found or not published for ID:', parsedId);
       return res.status(404).json({
         status: 'error',
         message: 'Event not found or not published'

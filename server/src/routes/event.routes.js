@@ -17,10 +17,10 @@ const router = express.Router();
 const publicRouter = express.Router();
 const protectedRouter = express.Router();
 
-// Public routes
+// Public routes - specific routes must come before parameterized routes
 publicRouter.get('/upcoming', getUpcomingEvents);
+publicRouter.get('/:eventId/ticket-types', getEventTicketTypes); // More specific path first
 publicRouter.get('/:eventId', getPublicEvent);
-publicRouter.get('/:eventId/ticket-types', getEventTicketTypes);
 
 // Protected routes (require organizer authentication)
 protectedRouter.use(protect);

@@ -323,14 +323,31 @@ const Event = {
   },
   
   async getPublicEvent(id) {
-    // First get the basic event data
-    const eventResult = await pool.query(
-      `SELECT e.* FROM events e WHERE e.id = $1 AND e.status = 'published'`,
-      [id]
-    );
+    // Validate that id is a number
+    if (typeof id !== 'number' || isNaN(id)) {
+      console.error('Invalid event ID provided to getPublicEvent:', id);
+      return null;
+    }
 
-    const event = eventResult.rows[0];
-    if (!event) return null;
+    console.log('Fetching public event data for ID:', id);
+    
+    // First get the basic event data
+    let event;
+    try {
+      const eventResult = await pool.query(
+        `SELECT e.* FROM events e WHERE e.id = $1 AND e.status = 'published'`,
+        [id]
+      );
+      event = eventResult.rows[0];
+    } catch (error) {
+      console.error('Database error in getPublicEvent:', error);
+      throw error; // Re-throw to be handled by the controller
+    }
+    
+    if (!event) {
+      console.log('No published event found with ID:', id);
+      return null;
+    }
 
     // Get ticket types with total created count
     const ticketTypesResult = await pool.query(
