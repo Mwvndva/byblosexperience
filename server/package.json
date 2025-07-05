@@ -4,15 +4,38 @@
   "description": "Backend for Byblos Atelier Vogue",
   "main": "src/index.js",
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "scripts": {
-    "start": "node dist/index.js",
-    "dev": "nodemon -r dotenv/config src/index.ts",
-    "build": "tsc && npm run migrate",
-    "migrate": "node -r dotenv/config dist/migrations/run-migrations.js",
+    "start": "node src/index.js",
+    "dev": "nodemon -r dotenv/config src/index.js",
+    "build": "npm install && npm run migrate",
+    "migrate": "node -r dotenv/config scripts/migrate.js",
     "migrate:create": "node-pg-migrate create",
     "seed": "node --experimental-json-modules -r dotenv/config scripts/seed-db.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint . --ext .js,.ts",
+    "format": "prettier --write \"**/*.{js,ts,json,md}\""
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/byblos-atelier-vogue.git"
+  },
+  "keywords": [
+    "ecommerce",
+    "fashion",
+    "nodejs",
+    "express",
+    "postgresql"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yourusername/byblos-atelier-vogue/issues"
+  },
+  "homepage": "https://github.com/yourusername/byblos-atelier-vogue#readme",
   "dependencies": {
     "@types/joi": "^17.2.2",
     "@types/uuid": "^10.0.0",
@@ -50,8 +73,33 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/node": "^24.0.7",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.29.1",
     "nodemon": "^3.0.2",
+    "prettier": "^3.2.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
+  },
+  "prettier": {
+    "semi": true,
+    "singleQuote": true,
+    "printWidth": 100,
+    "trailingComma": "es5"
+  },
+  "eslintConfig": {
+    "extends": [
+      "eslint:recommended",
+      "plugin:import/recommended"
+    ],
+    "env": {
+      "node": true,
+      "es2021": true
+    },
+    "parserOptions": {
+      "ecmaVersion": "latest",
+      "sourceType": "module"
+    },
+    "ignorePatterns": ["dist", "node_modules"]
   }
 }
