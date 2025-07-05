@@ -1128,46 +1128,76 @@ export const getEventTicketTypes = async (req, res) => {
 };
 
 export const getPublicEvent = async (req, res) => {
+  const requestId = req.id || 'no-request-id';
+  
+  console.log(`[${requestId}] === getPublicEvent controller called ===`);
+  console.log(`[${requestId}] Request URL: ${req.originalUrl}`);
+  console.log(`[${requestId}] Request params:`, req.params);
+  
+  const { eventId } = req.params;
+  
+  // Validate event ID
+  if (!eventId || isNaN(parseInt(eventId, 10))) {
+    const errorMsg = `Invalid event ID provided to getPublicEvent: ${eventId}`;
+    console.error(`[${requestId}] ${errorMsg}`);
+    return res.status(400).json({
+      status: 'error',
+      message: 'Invalid event ID format. Please provide a valid numeric event ID.',
+      requestId,
+      receivedId: eventId
+    });
+  }
+  
+  const numericEventId = parseInt(eventId, 10);
+  
   try {
-    console.log('Received request to get public event with params:', req.params);
-    console.log('Request URL:', req.originalUrl);
-    console.log('Request method:', req.method);
-    console.log('Request headers:', req.headers);
-    
-    const { eventId } = req.params;
-    
-    if (!eventId) {
-      console.error('Error: No eventId in request params');
-      return res.status(400).json({
-        status: 'error',
-        message: 'Event ID is required'
-      });
-    }
-    
-    // The route should have already validated that eventId is a number
-    const parsedId = parseInt(eventId, 10);
-    console.log('Fetching public event with ID:', parsedId);
-    const event = await Event.getPublicEvent(parsedId);
+    console.log(`[${requestId}] Fetching public event with ID: ${numericEventId}`);
+    const event = await Event.getPublicEvent(numericEventId);
     
     if (!event) {
-      console.error('Event not found or not published for ID:', parsedId);
+      console.log(`[${requestId}] Event not found or not published for ID: ${numericEventId}`);
       return res.status(404).json({
         status: 'error',
-        message: 'Event not found or not published'
+        message: 'Event not found or not published',
+        eventId: numericEventId,
+        requestId
       });
     }
     
-    res.status(200).json({
-      status: 'success',
-      data: {
-        event
-      }
-    });
+    // Ensure required fields exist
+    const formattedEvent = {
+      ...event,
+      id: event.id || numericEventId,
+      name: event.name || 'Unnamed Event',
+      description: event.description || '',
+      image_url: event.image_url || '/images/default-event.jpg',
+      location: event.location || 'Location not specified',
+      start_date: event.start_date,
+      end_date: event.end_date,
+      status: event.status || 'draft',
+      ticket_quantity: parseInt(event.ticket_quantity || '0', 10),
+      available_tickets: parseInt(event.available_tickets || event.ticket_quantity || '0', 10),
+      ticket_price: parseFloat(event.ticket_price || '0'),
+      created_at: event.created_at,
+      updated_at: event.updated_at,
+      organizer_id: event.organizer_id
+    };
+    
+    console.log(`[${requestId}] Successfully retrieved event: ${formattedEvent.name} (ID: ${formattedEvent.id})`);
+    return res.status(200).json(formattedEvent);
+    
   } catch (error) {
-    console.error('Get public event error:', error);
-    res.status(500).json({
+    console.error(`[${requestId}] Error in getPublicEvent:`, {
+      message: error.message,
+      stack: error.stack,
+      eventId: numericEventId,
+      originalUrl: req.originalUrl
+    });
+    
+    return res.status(500).json({
       status: 'error',
       message: 'An error occurred while fetching the event',
+      requestId,
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
