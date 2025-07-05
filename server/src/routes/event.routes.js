@@ -18,8 +18,18 @@ const router = express.Router();
 // Public routes - these don't require authentication
 // Define specific routes before parameterized routes to avoid conflicts
 router.get('/public/upcoming', getUpcomingEvents);
-router.get('/public/:eventId(\\d+)/ticket-types', getEventTicketTypes); // Only match numeric IDs
-router.get('/public/:eventId(\\d+)', getPublicEvent); // Only match numeric IDs
+
+// Add a route to handle non-numeric event IDs with a 404
+router.get('/public/:eventId([^0-9]+)', (req, res) => {
+  res.status(404).json({
+    status: 'error',
+    message: 'Event not found. Event ID must be a number.'
+  });
+});
+
+// Route for numeric event IDs
+router.get('/public/:eventId(\\d+)/ticket-types', getEventTicketTypes);
+router.get('/public/:eventId(\\d+)', getPublicEvent);
 
 // Protected routes (require organizer authentication)
 router.use(protect);

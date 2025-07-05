@@ -1076,6 +1076,7 @@ export const getPublicEvent = async (req, res) => {
   try {
     console.log('Received request to get public event with params:', req.params);
     console.log('Request URL:', req.originalUrl);
+    console.log('Request method:', req.method);
     console.log('Request headers:', req.headers);
     
     const { eventId } = req.params;
@@ -1088,16 +1089,8 @@ export const getPublicEvent = async (req, res) => {
       });
     }
     
-    // Validate that eventId is a valid integer
+    // The route should have already validated that eventId is a number
     const parsedId = parseInt(eventId, 10);
-    if (isNaN(parsedId)) {
-      console.error('Error: Invalid event ID format:', eventId);
-      return res.status(400).json({
-        status: 'error',
-        message: 'Invalid event ID format. Must be a number.'
-      });
-    }
-    
     console.log('Fetching public event with ID:', parsedId);
     const event = await Event.getPublicEvent(parsedId);
     
