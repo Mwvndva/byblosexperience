@@ -78,17 +78,26 @@ const whitelist = [
   'http://localhost:3002',
   'http://127.0.0.1:3002',
   'https://byblosatelier.com',
-  'https://www.byblosatelier.com'
+  'https://www.byblosatelier.com',
+  'https://byblosexperience.vercel.app',
+  'https://*.vercel.app' // Allow all Vercel preview deployments
 ];
+
+// Add any additional domains from environment variable
+const additionalOrigins = process.env.CORS_ORIGIN 
+  ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
+  : [];
 
 const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps, curl, postman)
     if (!origin) return callback(null, true);
     
-    // Check if origin is in whitelist or if in development
+    // Check if origin is in whitelist, additionalOrigins, or if in development
     if (
-      whitelist.indexOf(origin) !== -1 ||
+      whitelist.some(domain => origin === domain || 
+        (domain.includes('*') && new RegExp(domain.replace(/\*/g, '.*')).test(origin))) ||
+      additionalOrigins.includes(origin) ||
       process.env.NODE_ENV === 'development'
     ) {
       return callback(null, true);
