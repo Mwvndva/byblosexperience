@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { AlertCircle } from 'lucide-react';
 import { Calendar, Ticket, DollarSign, Clock, Users, TrendingUp, MapPin } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/use-toast';
 import { useOrganizerAuth } from '@/contexts/OrganizerAuthContext';
+import { AlertCircle } from 'lucide-react';
 import api from '@/lib/api';
 
 // Type definitions

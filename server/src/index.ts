@@ -1,19 +1,31 @@
 // Load environment variables first
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { mkdir } from 'fs/promises';
 import express from 'express';
-import organizerRoutes from './routes/organizer.routes';
-import sellerRoutes from './routes/seller.routes';
-import dashboardRoutes from './routes/dashboard.routes';
-import publicRoutes from './routes/public.routes';
-import healthRoutes from './routes/health.routes';
-import ticketRoutes from './routes/ticket.routes';
-import eventRoutes from './routes/event.routes';
-import { testConnection as testDbConnection } from './config/database.js';
+import cors from 'cors';
+import organizerRoutes from './routes/organizer.routes.js';
+import sellerRoutes from './routes/seller.routes.js';
+import dashboardRoutes from './routes/dashboard.routes.js';
+import publicRoutes from './routes/public.routes.js';
+import healthRoutes from './routes/health.routes.js';
+import ticketRoutes from './routes/ticket.routes.js';
+import eventRoutes from './routes/event.routes.js';
+import { pool, testConnection as testDbConnection } from './config/database.js';
 import { globalErrorHandler, notFoundHandler } from './utils/errorHandler.js';
 import { protect } from './middleware/auth.js';
 
-// Load environment variables from Render
-dotenv.config();
+// Get the current directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load environment variables
+const envPath = process.env.NODE_ENV === 'production' 
+  ? path.resolve(__dirname, '../.env.production')
+  : path.resolve(__dirname, '../../.env');
+
+dotenv.config({ path: envPath });
 
 // Debug log environment variables (without sensitive data)
 console.log('Environment variables loaded:');
@@ -30,36 +42,79 @@ console.log({
 // Create Express app
 const app = express();
 
-// CORS middleware with logging
-app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.log('CORS Request:', {
-    method: req.method,
-    url: req.url,
-    origin: req.headers.origin
-  });
+// Serve static files from uploads directory
+const uploadsDir = path.join(process.cwd(), 'uploads');
+console.log('Serving static files from:', uploadsDir);
 
-  // Get origin header
-  const origin = req.headers.origin as string | undefined;
-  
-  // Set CORS headers
-  if (origin) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
+// Ensure the uploads directory exists
+const ensureUploadsDir = async () => {
+  try {
+    await mkdir(uploadsDir, { recursive: true });
+    console.log('Uploads directory is ready');
+  } catch (error) {
+    console.error('Error creating uploads directory:', error);
   }
-  
-  // Allow these headers and methods
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+};
 
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    console.log('CORS Preflight request handled');
-    res.status(200).end();
-    return;
+// Serve static files
+app.use('/uploads', express.static(uploadsDir, {
+  setHeaders: (res, filePath) => {
+    // Set proper cache control for images
+    if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg') || 
+        filePath.endsWith('.png') || filePath.endsWith('.webp')) {
+      res.setHeader('Cache-Control', 'public, max-age=86400'); // 1 day
+    }
   }
+}));
 
-  next();
-});
+ensureUploadsDir();
+
+// CORS configuration
+const corsOptions: cors.CorsOptions = {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = process.env.CORS_ORIGIN 
+      ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
+      : ['http://localhost:3000', 'http://localhost:5173'];
+    
+    // Allow requests from allowed origins or any localhost/127.0.0.1 in development
+    if (
+      allowedOrigins.includes(origin) ||
+      allowedOrigins.includes('*') ||
+      (process.env.NODE_ENV === 'development' && (
+        origin.includes('localhost') || 
+        origin.includes('127.0.0.1') ||
+        origin.includes('0.0.0.0')
+      ))
+    ) {
+      return callback(null, true);
+    }
+    
+    return callback(new Error('Not allowed by CORS'));
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  exposedHeaders: ['Authorization', 'Content-Length', 'X-Foo', 'X-Bar'],
+  credentials: true,
+  maxAge: 86400, // 24 hours
+  optionsSuccessStatus: 200 // For legacy browser support
+};
+
+// Middleware
+app.use(cors(corsOptions));
+// Increase JSON and URL-encoded payload size limit to 50MB
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Add cookie parser middleware
+import cookieParser from 'cookie-parser';
+// @ts-ignore - TypeScript has issues with cookie-parser's default export
+app.use(cookieParser());
+
+// Log CORS origin for debugging
+console.log('CORS Origin:', process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : 'http://localhost:5173');
 
 // Test database connection
 const testConnection = async () => {
@@ -68,18 +123,15 @@ const testConnection = async () => {
     await testDbConnection();
     console.log('✅ Database connection test completed successfully');
     return true;
-  } catch (error: unknown) {
-    // Handle Node.js error types
-    const isNodeError = error instanceof Error && ('code' in error);
-    
+  } catch (error) {
     console.error('❌ Database connection test failed:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      code: isNodeError ? (error as any).code : undefined,
-      detail: error instanceof Error ? error.message : undefined,
-      stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
     console.error('Please check your database configuration in .env and ensure the database is running');
-    throw error instanceof Error ? error : new Error('Unknown error'); // Re-throw to be handled by the caller
+    throw error; // Re-throw to be handled by the caller
   }
 };
 
@@ -94,9 +146,6 @@ app.use('/api/tickets', ticketRoutes);
 // Mount organizer public routes (login, register, etc.)
 app.use('/api/organizers', organizerRoutes);
 
-// Mount event routes at root level
-app.use('/events', eventRoutes);
-
 // Organizer protected routes
 const protectedRouter = express.Router();
 
@@ -106,13 +155,13 @@ protectedRouter.use(protect);
 // Mount protected routes
 protectedRouter.use('/dashboard', dashboardRoutes);
 protectedRouter.use('/tickets', ticketRoutes);
-protectedRouter.use('/events', eventRoutes); // Mount event routes at /api/organizers/events
+protectedRouter.use('', eventRoutes); // Mount event routes at /api/organizers/events
 
 // Mount the protected router under /api/organizers
 app.use('/api/organizers', protectedRouter);
 
 // Health check endpoint
-app.get('/api/health', (_req, res) => {
+app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Server is running' });
 });
 
@@ -152,14 +201,11 @@ const startServer = async () => {
         process.exit(0);
       });
     });
-  } catch (error: unknown) {
-    // Handle Node.js error types
-    const isNodeError = error instanceof Error && ('code' in error);
-    
+  } catch (error) {
     console.error('❌ Failed to start server:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      code: isNodeError ? (error as any).code : undefined,
-      stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
+      message: error.message,
+      code: error.code,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
     process.exit(1);
   }
