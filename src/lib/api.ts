@@ -2,14 +2,38 @@ import axios, { AxiosError } from 'axios';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
+// Normalize the API URL to ensure it ends with /api
+const normalizeApiUrl = (url: string): string => {
+  // Remove trailing slashes
+  let normalized = url.replace(/\/+$/, '');
+  // Ensure it ends with /api
+  if (!normalized.endsWith('/api')) {
+    normalized = `${normalized}${normalized.endsWith('/') ? '' : '/'}api`;
+  }
+  return normalized;
+};
+
+// Get the base URL from environment variables
+const API_BASE_URL = normalizeApiUrl(import.meta.env.VITE_API_URL || 'http://localhost:3002');
+
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3002/api',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
   withCredentials: true, // Important for cookies
+});
+
+// Log the API configuration for debugging
+console.log('API Configuration:', {
+  baseURL: API_BASE_URL,
+  env: import.meta.env.MODE,
+  envVars: {
+    VITE_API_URL: import.meta.env.VITE_API_URL,
+    VITE_BASE_URL: import.meta.env.VITE_BASE_URL,
+  },
 });
 
 // Helper function to get token from localStorage

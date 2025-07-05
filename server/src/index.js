@@ -213,6 +213,8 @@ app.use((req, res, next) => {
 app.use('/api/health', healthRoutes);
 app.use('/api', publicRoutes);
 app.use('/api/sellers', sellerRoutes);
+
+// Mount public event routes (for public access to events)
 app.use('/api/events', eventRoutes);
 
 // Mount public ticket routes (validation, confirmation emails)
@@ -231,8 +233,44 @@ protectedRouter.use(protect);
 protectedRouter.use('/dashboard', dashboardRoutes);
 protectedRouter.use('/tickets', ticketRoutes); // This will be mounted at /api/organizers/tickets
 
+// Mount event routes under /api/organizers/events for backward compatibility
+// These routes will be protected by the protect middleware
+protectedRouter.use('/events', eventRoutes);
+
 // Mount the protected router under /api/organizers
 app.use('/api/organizers', protectedRouter);
+
+// Log all registered routes for debugging
+const printRoutes = (router, prefix = '') => {
+  router.stack.forEach((middleware) => {
+    if (middleware.route) {
+      // Routes registered directly on the app
+      const methods = Object.keys(middleware.route.methods).join(',').toUpperCase();
+      console.log(`${methods.padEnd(7)} ${prefix}${middleware.route.path}`);
+    } else if (middleware.name === 'router' || middleware.name === 'router') {
+      // Router middleware
+      const path = middleware.regexp.toString()
+        .replace('/^\\', '')
+        .replace('\\/?', '')
+        .replace('(?=\\/|$)', '')
+        .replace(/\/(?:([^\/]+?))\//g, '/:$1/');
+      
+      middleware.handle.stack.forEach((handler) => {
+        if (handler.route) {
+          const methods = Object.keys(handler.route.methods).join(',').toUpperCase();
+          console.log(`${methods.padEnd(7)} ${prefix}${path}${handler.route.path}`);
+        }
+      });
+    }
+  });
+};
+
+// Log all routes when in development
+if (process.env.NODE_ENV === 'development') {
+  console.log('\n=== Registered Routes ===');
+  printRoutes(app, '/api');
+  console.log('========================\n');
+}
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
