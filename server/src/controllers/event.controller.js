@@ -48,22 +48,32 @@ export const createEvent = async (req, res) => {
           message: 'Invalid image format. Must be a data URL starting with data:image/'
         });
       }
-
+      
       // Validate image size (max 2MB)
-      const imageSize = (image_data_url.length * 0.75); // Convert base64 to bytes
-      if (imageSize > 2 * 1024 * 1024) {
+      const base64Data = image_data_url.split(',')[1];
+      const imageSize = (base64Data.length * 3) / 4 - (base64Data.endsWith('==') ? 2 : 1);
+      const maxSize = 2 * 1024 * 1024; // 2MB
+      
+      if (imageSize > maxSize) {
         return res.status(400).json({
           status: 'error',
-          message: 'Image size exceeds 2MB limit'
+          message: 'Image size exceeds maximum allowed size of 2MB'
         });
       }
     }
 
-    // Validate date range
+    // Validate dates
     const startDate = new Date(start_date);
     const endDate = new Date(end_date);
     
-    if (endDate <= startDate) {
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid date format. Please use ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ)'
+      });
+    }
+    
+    if (startDate >= endDate) {
       return res.status(400).json({
         status: 'error',
         message: 'End date must be after start date'
@@ -73,126 +83,130 @@ export const createEvent = async (req, res) => {
     // Start transaction
     await client.query('BEGIN');
 
-    // For events with ticket types, we don't use the event-level ticket_quantity
-    const useTicketTypes = ticketTypes && ticketTypes.length > 0;
-    const totalQuantity = useTicketTypes ? 0 : (ticket_quantity ? Number(ticket_quantity) : 0);
-    const minPrice = useTicketTypes ? 
-      Math.min(...ticketTypes.map(t => Number(t.price) || 0)) :
-      (ticket_price ? Number(ticket_price) : 0);
+    try {
+      // Insert event
+      const eventResult = await client.query(
+        `INSERT INTO events (
+          name, 
+          description, 
+          location, 
+          start_date, 
+          end_date, 
+          image_url,
+          organizer_id,
+          status
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+        RETURNING *`,
+        [
+          name,
+          description,
+          location,
+          start_date,
+          end_date,
+          image_data_url || null,
+          req.user.id,
+          'draft'
+        ]
+      );
 
-    // Insert event into database
-    const query = `
-      INSERT INTO events (
-        organizer_id,
-        name,
-        description,
-        location,
-        ticket_quantity,
-        ticket_price,
-        start_date,
-        end_date,
-        image_url,
-        created_at,
-        updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
-      RETURNING *
-    `;
-
-    const safeTotalQuantity = Number.isInteger(totalQuantity) ? totalQuantity : 0;
-    const safeMinPrice = !isNaN(parseFloat(minPrice)) ? parseFloat(minPrice) : 0;
-
-    const values = [
-      req.user.id,
-      name,
-      description,
-      location,
-      safeTotalQuantity,
-      safeMinPrice,
-      start_date,
-      end_date,
-      image_data_url || null
-    ];
-
-    // Insert the event
-    const result = await client.query(query, values);
-    const event = result.rows[0];
-    console.log('Event created successfully with ID:', event.id);
-
-    // Process ticket types if any
-    if (useTicketTypes) {
-      for (const type of ticketTypes) {
-        // Handle dates safely
-        let salesStartDate = null;
-        let salesEndDate = null;
-        
-        try {
-          salesStartDate = type.salesStartDate ? new Date(type.salesStartDate) : null;
-          salesEndDate = type.salesEndDate ? new Date(type.salesEndDate) : null;
+      const event = eventResult.rows[0];
+      
+      // Handle ticket types
+      if (ticketTypes && ticketTypes.length > 0) {
+        // Insert multiple ticket types
+        for (const ticketType of ticketTypes) {
+          const { name, description, price, quantity, sales_start_date, sales_end_date } = ticketType;
           
-          // Validate dates
-          if (salesStartDate && isNaN(salesStartDate.getTime())) {
-            throw new Error(`Invalid sales start date for ticket type "${type.name}"`);
+          // Validate ticket type
+          if (!name || !price || !quantity) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({
+              status: 'error',
+              message: 'Each ticket type must have a name, price, and quantity'
+            });
           }
-          if (salesEndDate && isNaN(salesEndDate.getTime())) {
-            throw new Error(`Invalid sales end date for ticket type "${type.name}"`);
-          }
-        } catch (dateError) {
-          console.error('Error parsing dates:', dateError);
-          throw new Error(`Invalid date format for ticket type "${type.name}"`);
+          
+          // Insert ticket type
+          await client.query(
+            `INSERT INTO ticket_types (
+              event_id,
+              name,
+              description,
+              price,
+              quantity,
+              sales_start_date,
+              sales_end_date
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [
+              event.id,
+              name,
+              description || null,
+              parseFloat(price),
+              parseInt(quantity, 10),
+              sales_start_date || start_date,
+              sales_end_date || end_date
+            ]
+          );
         }
-        
-        const price = typeof type.price === 'string' ? parseFloat(type.price) : Number(type.price);
-        const quantity = typeof type.quantity === 'string' ? 
-          parseInt(type.quantity, 10) : 
-          Math.max(1, Math.floor(Number(type.quantity) || 1));
-
-        // Insert ticket type
+      } else {
+        // Insert default ticket type
         await client.query(
           `INSERT INTO ticket_types (
-            event_id, name, description, price, quantity, 
-            sales_start_date, sales_end_date, created_at, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
-          [
-            event.id,
-            type.name,
-            type.description || '',
+            event_id,
+            name,
+            description,
             price,
             quantity,
-            salesStartDate,
-            salesEndDate
+            sales_start_date,
+            sales_end_date
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [
+            event.id,
+            'General Admission',
+            'General admission ticket',
+            parseFloat(ticket_price),
+            parseInt(ticket_quantity, 10),
+            start_date,
+            end_date
           ]
         );
       }
-    }
 
-    // Commit the transaction
-    await client.query('COMMIT');
+      // Commit transaction
+      await client.query('COMMIT');
 
-    // Return success response
-    return res.status(201).json({
-      status: 'success',
-      data: { event }
-    });
-
-  } catch (error) {
-    // Rollback transaction on error
-    await client.query('ROLLBACK');
-    console.error('Create event error:', error);
-    
-    // Handle specific error cases
-    if (error.code === '23505') { // Unique violation
-      return res.status(400).json({
-        status: 'error',
-        message: 'An event with similar details already exists.'
+      res.status(201).json({
+        status: 'success',
+        data: {
+          event: {
+            id: event.id,
+            name: event.name,
+            description: event.description,
+            location: event.location,
+            start_date: event.start_date,
+            end_date: event.end_date,
+            image_url: event.image_url,
+            status: event.status,
+            created_at: event.created_at,
+            updated_at: event.updated_at
+          }
+        }
       });
+
+    } catch (error) {
+      // Rollback transaction on error
+      await client.query('ROLLBACK');
+      throw error;
     }
+  } catch (error) {
+    console.error('Create event error:', error);
     
     // Generic error response
     const errorResponse = {
       status: 'error',
       message: error.message || 'An error occurred while creating the event'
     };
-    
+
     // Include stack trace in development
     if (process.env.NODE_ENV === 'development') {
       errorResponse.error = error.message;
@@ -209,11 +223,11 @@ export const createEvent = async (req, res) => {
 };
 
 /**
- * Delete an event
+ * Get a single event by ID for an organizer
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  */
-export const deleteEvent = async (req, res) => {
+export const getEvent = async (req, res) => {
   const client = await pool.connect();
   
   try {
@@ -227,55 +241,77 @@ export const deleteEvent = async (req, res) => {
       });
     }
 
-    // Start transaction
-    await client.query('BEGIN');
+    // Get the event with ticket types
+    const query = `
+      SELECT 
+        e.*,
+        json_agg(
+          json_build_object(
+            'id', tt.id,
+            'name', tt.name,
+            'description', tt.description,
+            'price', tt.price,
+            'quantity', tt.quantity,
+            'sales_start_date', tt.sales_start_date,
+            'sales_end_date', tt.sales_end_date,
+            'created_at', tt.created_at,
+            'updated_at', tt.updated_at,
+            'available_quantity', tt.quantity - COALESCE((
+              SELECT COUNT(*) 
+              FROM tickets t 
+              WHERE t.ticket_type_id = tt.id
+            ), 0),
+            'sold_quantity', (
+              SELECT COUNT(*) 
+              FROM tickets t 
+              WHERE t.ticket_type_id = tt.id
+            )
+          )
+        ) as ticket_types
+      FROM events e
+      LEFT JOIN ticket_types tt ON e.id = tt.event_id
+      WHERE e.id = $1 AND e.organizer_id = $2
+      GROUP BY e.id`;
 
-    // First, check if the event exists and belongs to the organizer
-    const eventResult = await client.query(
-      'SELECT id, organizer_id FROM events WHERE id = $1',
-      [id]
-    );
+    const result = await client.query(query, [id, organizerId]);
 
-    if (eventResult.rows.length === 0) {
+    if (result.rows.length === 0) {
       return res.status(404).json({
         status: 'error',
-        message: 'Event not found'
+        message: 'Event not found or you do not have permission to view it'
       });
     }
 
-    const event = eventResult.rows[0];
-
-    // Check if the authenticated user is the organizer of the event
-    if (event.organizer_id !== organizerId) {
-      return res.status(403).json({
-        status: 'error',
-        message: 'Not authorized to delete this event'
-      });
-    }
-
-    // Delete related records first to maintain referential integrity
-    await client.query('DELETE FROM ticket_types WHERE event_id = $1', [id]);
+    const event = result.rows[0];
     
-    // Delete the event
-    await client.query('DELETE FROM events WHERE id = $1', [id]);
-    
-    // Commit the transaction
-    await client.query('COMMIT');
+    // Format the response
+    const response = {
+      id: event.id,
+      name: event.name,
+      description: event.description,
+      location: event.location,
+      start_date: event.start_date,
+      end_date: event.end_date,
+      status: event.status,
+      image_url: event.image_url,
+      created_at: event.created_at,
+      updated_at: event.updated_at,
+      ticket_types: event.ticket_types[0] ? event.ticket_types : []
+    };
 
     res.status(200).json({
       status: 'success',
-      message: 'Event deleted successfully'
+      data: {
+        event: response
+      }
     });
 
   } catch (error) {
-    // Rollback transaction on error
-    await client.query('ROLLBACK');
-    
-    console.error('Delete event error:', error);
+    console.error('Get event error:', error);
     
     res.status(500).json({
       status: 'error',
-      message: 'An error occurred while deleting the event',
+      message: 'An error occurred while fetching the event',
       ...(process.env.NODE_ENV === 'development' && {
         error: error.message,
         stack: error.stack
@@ -375,6 +411,87 @@ export const getDashboardEvents = async (req, res) => {
     res.status(500).json({
       status: 'error',
       message: 'An error occurred while fetching dashboard events',
+      ...(process.env.NODE_ENV === 'development' && {
+        error: error.message,
+        stack: error.stack
+      })
+    });
+  } finally {
+    // Always release the client back to the pool
+    if (client) {
+      client.release();
+    }
+  }
+};
+
+/**
+ * Delete an event
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+export const deleteEvent = async (req, res) => {
+  const client = await pool.connect();
+  
+  try {
+    const { id } = req.params;
+    const organizerId = req.user?.id;
+
+    if (!organizerId) {
+      return res.status(401).json({
+        status: 'error',
+        message: 'Authentication required'
+      });
+    }
+
+    // Start transaction
+    await client.query('BEGIN');
+
+    // First, check if the event exists and belongs to the organizer
+    const eventResult = await client.query(
+      'SELECT id, organizer_id FROM events WHERE id = $1',
+      [id]
+    );
+
+    if (eventResult.rows.length === 0) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Event not found'
+      });
+    }
+
+    const event = eventResult.rows[0];
+
+    // Check if the authenticated user is the organizer of the event
+    if (event.organizer_id !== organizerId) {
+      return res.status(403).json({
+        status: 'error',
+        message: 'Not authorized to delete this event'
+      });
+    }
+
+    // Delete related records first to maintain referential integrity
+    await client.query('DELETE FROM ticket_types WHERE event_id = $1', [id]);
+    
+    // Delete the event
+    await client.query('DELETE FROM events WHERE id = $1', [id]);
+    
+    // Commit the transaction
+    await client.query('COMMIT');
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Event deleted successfully'
+    });
+
+  } catch (error) {
+    // Rollback transaction on error
+    await client.query('ROLLBACK');
+    
+    console.error('Delete event error:', error);
+    
+    res.status(500).json({
+      status: 'error',
+      message: 'An error occurred while deleting the event',
       ...(process.env.NODE_ENV === 'development' && {
         error: error.message,
         stack: error.stack
