@@ -55,29 +55,7 @@ app.use(requestId);
 // Set security HTTP headers
 app.use(helmet());
 
-// Enable CORS with specific origin
-const corsOptions = {
-  origin: (origin, callback) => {
-    const allowedOrigins = [
-      'https://byblosexperience.vercel.app',
-      'http://localhost:5173',
-      'https://byblosexperience.onrender.com'
-    ];
-    
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.warn(`Blocked request from origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
-};
-
-app.use(cors(corsOptions));
+// CORS configuration is now consolidated below
 
 // Log all requests
 app.use((req, res, next) => {
@@ -125,7 +103,7 @@ app.use('/uploads', express.static(uploadsDir, {
 
 ensureUploadsDir();
 
-// CORS configuration
+// CORS configuration - Consolidated configuration
 const whitelist = [
   'http://localhost:3000',
   'http://127.0.0.1:3000',
@@ -133,9 +111,11 @@ const whitelist = [
   'http://127.0.0.1:3001',
   'http://localhost:3002',
   'http://127.0.0.1:3002',
+  'http://localhost:5173',
   'https://byblosatelier.com',
   'https://www.byblosatelier.com',
   'https://byblosexperience.vercel.app',
+  'https://byblosexperience.onrender.com',
   'https://*.vercel.app' // Allow all Vercel preview deployments
 ];
 
@@ -144,18 +124,19 @@ const additionalOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
   : [];
 
+// Consolidated CORS options
 const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps, curl, postman)
     if (!origin) return callback(null, true);
     
     // Check if origin is in whitelist, additionalOrigins, or if in development
-    if (
-      whitelist.some(domain => origin === domain || 
-        (domain.includes('*') && new RegExp(domain.replace(/\*/g, '.*')).test(origin))) ||
-      additionalOrigins.includes(origin) ||
-      process.env.NODE_ENV === 'development'
-    ) {
+    const isAllowed = whitelist.some(domain => 
+      origin === domain || 
+      (domain.includes('*') && new RegExp(domain.replace(/\*/g, '.*')).test(origin))
+    ) || additionalOrigins.includes(origin);
+    
+    if (isAllowed || process.env.NODE_ENV === 'development') {
       return callback(null, true);
     }
     
@@ -163,6 +144,7 @@ const corsOptions = {
     console.warn('CORS blocked:', origin);
     return callback(new Error('Not allowed by CORS'));
   },
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: [
     'Content-Type', 
@@ -170,7 +152,8 @@ const corsOptions = {
     'X-Requested-With', 
     'Accept',
     'X-Access-Token',
-    'X-Refresh-Token'
+    'X-Refresh-Token',
+    'X-Request-ID'
   ],
   exposedHeaders: [
     'Authorization', 
@@ -178,26 +161,28 @@ const corsOptions = {
     'X-Access-Token',
     'X-Refresh-Token',
     'Content-Range',
-    'Content-Disposition'
+    'Content-Disposition',
+    'X-Request-ID'
   ],
-  credentials: true,
   maxAge: 86400, // 24 hours
   optionsSuccessStatus: 200 // For legacy browser support
 };
 
-// Apply CORS middleware before other routes
+// Apply CORS middleware with options
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // Enable pre-flight for all routes
 // Increase JSON and URL-encoded payload size limit to 50MB
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Add cookie parser middleware
-import cookieParser from 'cookie-parser';
-app.use(cookieParser());
+// Cookie parser is already imported and used above
 
-// Log CORS origin for debugging
-console.log('CORS Origin:', process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : 'http://localhost:5173');
+// Log CORS configuration for debugging
+console.log('CORS Configuration:', {
+  whitelist,
+  additionalOrigins,
+  nodeEnv: process.env.NODE_ENV || 'development'
+});
 
 // Test database connection
 const testConnection = async () => {
