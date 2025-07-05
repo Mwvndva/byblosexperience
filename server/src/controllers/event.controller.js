@@ -784,24 +784,39 @@ export const updateEventStatus = async (req, res) => {
 };
 
 export const getUpcomingEvents = async (req, res) => {
+  console.log('=== getUpcomingEvents controller called ===');
+  console.log('Request URL:', req.originalUrl);
+  console.log('Request method:', req.method);
+  console.log('Request query:', req.query);
+  
   try {
-    console.log('Received request to get upcoming events with query:', req.query);
-    
     // Parse and validate limit
     const limit = Math.min(parseInt(req.query.limit, 10) || 10, 100); // Cap at 100 events
+    console.log('Parsed limit:', limit);
+    
     if (isNaN(limit) || limit < 1) {
+      console.error('Invalid limit parameter:', req.query.limit);
       return res.status(400).json({
         status: 'error',
         message: 'Invalid limit parameter. Must be a positive number.'
       });
     }
     
-    console.log(`Fetching ${limit} upcoming events...`);
+    console.log(`Fetching ${limit} upcoming events from database...`);
     const events = await Event.getUpcomingEvents(limit);
     
     console.log(`Found ${events.length} upcoming events`);
+    if (events.length > 0) {
+      console.log('Sample event:', {
+        id: events[0].id,
+        name: events[0].name,
+        start_date: events[0].start_date,
+        end_date: events[0].end_date
+      });
+    }
     
     // Return events array directly for public API
+    console.log('Sending response with events');
     res.status(200).json(events);
   } catch (error) {
     console.error('Get upcoming events error:', {

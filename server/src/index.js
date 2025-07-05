@@ -162,6 +162,12 @@ const testConnection = async () => {
   }
 };
 
+// Add request logging middleware
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 // Routes - Public routes first to ensure they take precedence
 app.use('/api/health', healthRoutes);
 app.use('/api', publicRoutes);

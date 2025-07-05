@@ -17,7 +17,11 @@ const router = express.Router();
 
 // Public routes - these don't require authentication
 // Define specific routes before parameterized routes to avoid conflicts
-router.get('/public/upcoming', getUpcomingEvents);
+router.get('/public/upcoming', (req, res, next) => {
+  console.log('GET /public/upcoming route hit');
+  console.log('Query params:', req.query);
+  next();
+}, getUpcomingEvents);
 
 // Add a route to handle non-numeric event IDs with a 404
 router.get('/public/:eventId([^0-9]+)', (req, res) => {

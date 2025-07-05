@@ -182,144 +182,153 @@ const Event = {
   },
 
   async getUpcomingEvents(limit = 10) {
-    // First get all upcoming events
-    const result = await pool.query(
-      `SELECT e.* FROM events e
-       WHERE e.status = 'published' 
-         AND e.start_date > NOW()
-       ORDER BY e.start_date ASC
-       LIMIT $1`,
-      [limit]
-    );
+    try {
+      console.log('Fetching upcoming events with limit:', limit);
+      
+      // First get all upcoming events
+      const result = await pool.query(
+        `SELECT e.* FROM events e
+         WHERE e.status = 'published' 
+           AND e.start_date > NOW()
+         ORDER BY e.start_date ASC
+         LIMIT $1`,
+        [limit]
+      );
 
-    const events = result.rows;
-    if (events.length === 0) return [];
-    
-    // Get ticket types for all events
-    const eventIds = events.map(e => e.id);
-    const ticketTypesResult = await pool.query(
-      `WITH type_counts AS (
+      const events = result.rows;
+      console.log(`Found ${events.length} upcoming events`);
+      
+      if (events.length === 0) return [];
+      
+      // Get ticket types for all events
+      const eventIds = events.map(e => e.id);
+      const ticketTypesResult = await pool.query(
+        `WITH type_counts AS (
+          SELECT 
+            t.ticket_type_id,
+            t.event_id,
+            COUNT(*) as sold_count,
+            COALESCE(SUM(t.price), 0) as type_revenue
+          FROM tickets t
+          WHERE t.event_id = ANY($1)
+            AND t.status = 'paid'
+          GROUP BY t.ticket_type_id, t.event_id
+        )
         SELECT 
-          t.ticket_type_id,
-          t.event_id,
-          COUNT(*) as sold_count,
-          COALESCE(SUM(t.price), 0) as type_revenue
-        FROM tickets t
-        WHERE t.event_id = ANY($1)
-          AND t.status = 'paid'
-        GROUP BY t.ticket_type_id, t.event_id
-      )
-      SELECT 
-        tt.*,
-        COALESCE(tc.sold_count, 0) as sold,
-        GREATEST(0, tt.quantity - COALESCE(tc.sold_count, 0)) as available,
-        COALESCE(tc.type_revenue, 0) as revenue
-      FROM ticket_types tt 
-      LEFT JOIN type_counts tc ON tt.id = tc.ticket_type_id
-      WHERE tt.event_id = ANY($1)
-        AND (tt.sales_start_date IS NULL OR tt.sales_start_date <= NOW())
-        AND (tt.sales_end_date IS NULL OR tt.sales_end_date >= NOW())
-      ORDER BY tt.price ASC`,
-      [eventIds]
-    );
-    
-    // Group ticket types by event ID
-    const ticketTypesByEvent = {};
-    ticketTypesResult.rows.forEach(tt => {
-      if (!ticketTypesByEvent[tt.event_id]) {
-        ticketTypesByEvent[tt.event_id] = [];
-      }
-      ticketTypesByEvent[tt.event_id].push({
-        ...tt,
-        sold: parseInt(tt.sold || '0', 10),
-        available: parseInt(tt.available || '0', 10),
-        revenue: parseFloat(tt.revenue || '0')
-      });
-    });
-    
-    // Get ticket sales for events without ticket types
-    const eventsWithoutTicketTypes = events.filter(e => !ticketTypesByEvent[e.id] || ticketTypesByEvent[e.id].length === 0);
-    if (eventsWithoutTicketTypes.length > 0) {
-      const eventIdsWithoutTypes = eventsWithoutTicketTypes.map(e => e.id);
-      const ticketSalesResult = await pool.query(
-        `SELECT 
-          event_id,
-          COUNT(*) as sold_count,
-          COALESCE(SUM(price), 0) as total_revenue
-        FROM tickets 
-        WHERE event_id = ANY($1)
-          AND status = 'paid'
-        GROUP BY event_id`,
-        [eventIdsWithoutTypes]
+          tt.*,
+          COALESCE(tc.sold_count, 0) as sold,
+          GREATEST(0, tt.quantity - COALESCE(tc.sold_count, 0)) as available,
+          COALESCE(tc.type_revenue, 0) as revenue
+        FROM ticket_types tt 
+        LEFT JOIN type_counts tc ON tt.id = tc.ticket_type_id
+        WHERE tt.event_id = ANY($1)
+          AND (tt.sales_start_date IS NULL OR tt.sales_start_date <= NOW())
+          AND (tt.sales_end_date IS NULL OR tt.sales_end_date >= NOW())
+        ORDER BY tt.price ASC`,
+        [eventIds]
       );
       
-      // Add default ticket types for events without ticket types
-      ticketSalesResult.rows.forEach(sale => {
-        const event = events.find(e => e.id === sale.event_id);
-        if (event) {
-          const sold = parseInt(sale.sold_count || '0', 10);
-          const quantity = parseInt(event.ticket_quantity || '0', 10);
-          const available = Math.max(0, quantity - sold);
-          const revenue = parseFloat(sale.total_revenue || '0');
-          
-          ticketTypesByEvent[event.id] = [{
-            id: 'default',
-            event_id: event.id,
-            name: 'General Admission',
-            description: 'General admission ticket',
-            price: parseFloat(event.ticket_price || '0'),
-            quantity: quantity,
-            sold: sold,
-            available: available,
-            revenue: revenue,
-            sales_start_date: null,
-            sales_end_date: null,
-            is_default: true
-          }];
+      // Group ticket types by event ID
+      const ticketTypesByEvent = {};
+      ticketTypesResult.rows.forEach(tt => {
+        if (!ticketTypesByEvent[tt.event_id]) {
+          ticketTypesByEvent[tt.event_id] = [];
         }
+        ticketTypesByEvent[tt.event_id].push({
+          ...tt,
+          sold: parseInt(tt.sold || '0', 10),
+          available: parseInt(tt.available || '0', 10),
+          revenue: parseFloat(tt.revenue || '0')
+        });
       });
-    }
-    
-    // Update events with ticket types and calculated values
-    events.forEach(event => {
-      const ticketTypes = ticketTypesByEvent[event.id] || [];
       
-      // Calculate totals from ticket types
-      const totals = ticketTypes.reduce((acc, tt) => ({
-        sold: acc.sold + (parseInt(tt.sold) || 0),
-        available: acc.available + (parseInt(tt.available) || 0),
-        revenue: acc.revenue + (parseFloat(tt.revenue) || 0)
-      }), { sold: 0, available: 0, revenue: 0 });
-      
-      // Update event with calculated values
-      event.ticket_types = ticketTypes;
-      event.tickets_sold = totals.sold;
-      event.available_tickets = totals.available;
-      event.total_revenue = totals.revenue;
-      
-      // For backward compatibility, set ticket_quantity to the sum of ticket type quantities
-      if (ticketTypes.length > 0) {
-        event.ticket_quantity = ticketTypes.reduce((sum, tt) => sum + (parseInt(tt.quantity) || 0), 0);
+      // Get ticket sales for events without ticket types
+      const eventsWithoutTicketTypes = events.filter(e => !ticketTypesByEvent[e.id] || ticketTypesByEvent[e.id].length === 0);
+      if (eventsWithoutTicketTypes.length > 0) {
+        const eventIdsWithoutTypes = eventsWithoutTicketTypes.map(e => e.id);
+        const ticketSalesResult = await pool.query(
+          `SELECT 
+            event_id,
+            COUNT(*) as sold_count,
+            COALESCE(SUM(price), 0) as total_revenue
+          FROM tickets 
+          WHERE event_id = ANY($1)
+            AND status = 'paid'
+          GROUP BY event_id`,
+          [eventIdsWithoutTypes]
+        );
+        
+        // Add default ticket types for events without ticket types
+        ticketSalesResult.rows.forEach(sale => {
+          const event = events.find(e => e.id === sale.event_id);
+          if (event) {
+            const sold = parseInt(sale.sold_count || '0', 10);
+            const quantity = parseInt(event.ticket_quantity || '0', 10);
+            const available = Math.max(0, quantity - sold);
+            const revenue = parseFloat(sale.total_revenue || '0');
+            
+            ticketTypesByEvent[event.id] = [{
+              id: 'default',
+              event_id: event.id,
+              name: 'General Admission',
+              description: 'General admission ticket',
+              price: parseFloat(event.ticket_price || '0'),
+              quantity: quantity,
+              sold: sold,
+              available: available,
+              revenue: revenue,
+              sales_start_date: null,
+              sales_end_date: null,
+              is_default: true
+            }];
+          }
+        });
       }
       
-      // Debug log
-      console.log(`Event ${event.id} (${event.name}):`, {
-        ticket_quantity: event.ticket_quantity,
-        tickets_sold: event.tickets_sold,
-        available_tickets: event.available_tickets,
-        total_revenue: event.total_revenue,
-        ticket_types: event.ticket_types.map(t => ({
-          id: t.id,
-          name: t.name,
-          quantity: t.quantity,
-          sold: t.sold,
-          available: t.available,
-          price: t.price
-        }))
+      // Update events with ticket types and calculated values
+      events.forEach(event => {
+        const ticketTypes = ticketTypesByEvent[event.id] || [];
+        
+        // Calculate totals from ticket types
+        const totals = ticketTypes.reduce((acc, tt) => ({
+          sold: acc.sold + (parseInt(tt.sold) || 0),
+          available: acc.available + (parseInt(tt.available) || 0),
+          revenue: acc.revenue + (parseFloat(tt.revenue) || 0)
+        }), { sold: 0, available: 0, revenue: 0 });
+        
+        // Update event with calculated values
+        event.ticket_types = ticketTypes;
+        event.tickets_sold = totals.sold;
+        event.available_tickets = totals.available;
+        event.total_revenue = totals.revenue;
+        
+        // For backward compatibility, set ticket_quantity to the sum of ticket type quantities
+        if (ticketTypes.length > 0) {
+          event.ticket_quantity = ticketTypes.reduce((sum, tt) => sum + (parseInt(tt.quantity) || 0), 0);
+        }
+        
+        // Debug log
+        console.log(`Event ${event.id} (${event.name}):`, {
+          ticket_quantity: event.ticket_quantity,
+          tickets_sold: event.tickets_sold,
+          available_tickets: event.available_tickets,
+          total_revenue: event.total_revenue,
+          ticket_types: event.ticket_types.map(t => ({
+            id: t.id,
+            name: t.name,
+            quantity: t.quantity,
+            sold: t.sold,
+            available: t.available,
+            price: t.price
+          }))
+        });
       });
-    });
-    
-    return events;
+      
+      return events;
+    } catch (error) {
+      console.error('Error in getUpcomingEvents model method:', error);
+      throw error;
+    }
   },
   
   async getPublicEvent(id) {
