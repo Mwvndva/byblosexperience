@@ -1,7 +1,12 @@
 import axios from 'axios';
 
 // Use VITE_API_URL from environment variables or fallback to relative path for development
-const baseURL = import.meta.env.VITE_API_URL || '/api';
+let baseURL = import.meta.env.VITE_API_URL || '/api';
+
+// Ensure baseURL ends with /api
+if (!baseURL.endsWith('/api')) {
+  baseURL = baseURL.endsWith('/') ? `${baseURL}api` : `${baseURL}/api`;
+}
 
 console.log('API Base URL:', baseURL); // Debug log
 
@@ -72,9 +77,11 @@ export const publicApiService = {
   // Get all products (optionally filtered by aesthetic)
   getProducts: async (aesthetic?: string): Promise<Product[]> => {
     try {
-      const url = aesthetic 
-        ? `/products?aesthetic=${encodeURIComponent(aesthetic)}` 
-        : '/products';
+      // Remove leading slash to ensure it's relative to baseURL
+      const endpoint = aesthetic 
+        ? `products?aesthetic=${encodeURIComponent(aesthetic)}` 
+        : 'products';
+      const url = endpoint;
       
       console.log('Fetching products from URL:', url);
       const response = await publicApi.get(url);
@@ -120,7 +127,7 @@ export const publicApiService = {
   // Get a single product by ID
   getProduct: async (id: string): Promise<Product | null> => {
     try {
-      const response = await publicApi.get(`/products/${id}`);
+      const response = await publicApi.get(`products/${id}`);
       const productData = response.data.data?.product || response.data.product || response.data;
       return transformProduct(productData);
     } catch (error) {
@@ -133,7 +140,7 @@ export const publicApiService = {
   // Get seller public info
   getSellerInfo: async (sellerId: string): Promise<Seller | null> => {
     try {
-      const response = await publicApi.get(`/sellers/${sellerId}/public`);
+      const response = await publicApi.get(`sellers/${sellerId}/public`);
       const sellerData = response.data.data?.seller || response.data.seller || response.data;
       return transformSeller(sellerData);
     } catch (error) {
@@ -146,7 +153,9 @@ export const publicApiService = {
   // Get featured products
   getFeaturedProducts: async (limit: number = 8): Promise<Product[]> => {
     try {
-      const response = await publicApi.get(`/products/featured?limit=${limit}`);
+      const response = await publicApi.get('products/featured', {
+        params: { limit }
+      });
       const productsData = response.data.products || response.data.data?.products || response.data || [];
       return productsData.map(transformProduct);
     } catch (error) {
@@ -158,8 +167,8 @@ export const publicApiService = {
   // Search products
   searchProducts: async (query: string, filters: Record<string, any> = {}): Promise<Product[]> => {
     try {
-      const params = new URLSearchParams({ q: query, ...filters });
-      const response = await publicApi.get(`/products/search?${params.toString()}`);
+      const params = { q: query, ...filters };
+      const response = await publicApi.get('products/search', { params });
       const productsData = response.data.products || response.data.data?.products || response.data || [];
       return productsData.map(transformProduct);
     } catch (error) {
