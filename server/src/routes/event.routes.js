@@ -29,9 +29,11 @@ router.use((req, res, next) => {
 // Create a separate router for public routes to avoid route conflicts
 const publicRouter = express.Router({ mergeParams: true });
 
-// 1. First, define the static route for upcoming events with an exact match
-// Using a special route pattern to ensure it's matched literally
-publicRouter.get('/upcoming$', (req, res, next) => {
+// Mount the public router at /public
+router.use('/public', publicRouter);
+
+// Define the upcoming events route
+publicRouter.get('/upcoming', (req, res, next) => {
   const requestId = req.id || 'no-request-id';
   console.log(`[${requestId}] GET /public/upcoming`);
   console.log(`[${requestId}] Query params:`, req.query);
