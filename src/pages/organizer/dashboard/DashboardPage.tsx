@@ -3,7 +3,11 @@ import { Calendar, Ticket, DollarSign, Clock, Users, TrendingUp, MapPin } from '
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { formatCurrency } from '@/lib/utils';
 import { useOrganizerAuth } from '@/contexts/OrganizerAuthContext';
 import { AlertCircle } from 'lucide-react';
 import api from '@/lib/api';
@@ -42,16 +46,7 @@ interface RecentSale {
   created_at: string;
 }
 
-// Format currency
-const formatCurrency = (amount: string | number) => {
-  const amountNumber = typeof amount === 'string' ? parseFloat(amount) : amount;
-  return new Intl.NumberFormat('en-KE', {
-    style: 'currency',
-    currency: 'KES',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(amountNumber);
-};
+// Format currency (using shared utility function from @/lib/utils)
 
 // Format date
 const formatDate = (dateString: string) => {
@@ -232,7 +227,7 @@ const DashboardPage = () => {
     {
       id: 6,
       title: 'Total Revenue',
-      value: stats?.total_revenue ? formatCurrency(stats.total_revenue) : formatCurrency(0),
+      value: stats?.total_revenue ? formatCurrency(Number(stats.total_revenue)) : formatCurrency(0),
       icon: DollarSign,
       iconColor: 'bg-emerald-100 text-emerald-600',
       change: null,

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 import api from '@/lib/api';
+import { formatCurrency } from '@/lib/utils';
 import { 
   ArrowLeft, 
   Edit, 
@@ -659,7 +660,7 @@ export default function EventDetailPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
-                      ${analytics.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {formatCurrency(analytics.totalRevenue)}
                     </div>
                     <p className="text-xs text-muted-foreground">Total revenue generated</p>
                   </CardContent>
