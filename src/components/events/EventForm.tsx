@@ -35,7 +35,11 @@ const eventFormSchema = z.object({
       salesStartDate: z.date().optional(),
       salesEndDate: z.date().optional(),
     })
-  ).min(1, 'At least one ticket type is required'),
+  ).min(1, 'At least one ticket type is required')
+  .refine(tickets => tickets.some(t => t.price > 0), {
+    message: 'At least one ticket type must have a price greater than 0',
+    path: ['ticketTypes'],
+  }),
 });
 
 type EventFormValues = z.infer<typeof eventFormSchema>;
