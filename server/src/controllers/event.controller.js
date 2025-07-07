@@ -576,13 +576,12 @@ export const getPublicEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
     
-    // Get event details
+    // Get event details with organizer info
     const eventResult = await client.query(
       `SELECT e.*, 
-              o.name as organizer_name,
-              o.description as organizer_description,
-              o.image_url as organizer_image,
-              o.website as organizer_website
+              o.full_name as organizer_name,
+              o.email as organizer_email,
+              o.phone as organizer_phone
        FROM events e
        JOIN organizers o ON e.organizer_id = o.id
        WHERE e.id = $1 AND e.status = 'published'`,
