@@ -319,18 +319,21 @@ export const purchaseTickets = async (req, res, next) => {
             appName: 'Byblos Experience'
           };
           
-          // Generate QR code for the first ticket (assuming one ticket per email for now)
+          // Initialize QR code generator
           const QRCode = (await import('qrcode')).default;
-          const qrCodeData = `TICKET:${tickets[0].ticket_number}:${eventId}:${tickets[0].id}`;
           let qrCodeDataUrl;
           let qrCodeBuffer;
           
-          // Generate validation URL in the format: http://localhost:3000/tickets/validate/TKT-XXXXXXXXXXXX?qr=true
+          // Generate secure validation URL with event ID and ticket number
           const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-          const validationUrl = `${baseUrl}/tickets/validate/${tickets[0].ticket_number}?qr=true`;
+          const ticketNumber = encodeURIComponent(tickets[0].ticket_number);
+          const eventId = tickets[0].event_id;
+          const validationUrl = `${baseUrl}/e/${eventId}/tickets/validate?ticket=${ticketNumber}&v=${Date.now()}`;
           
           try {
-            qrCodeDataUrl = await QRCode.toDataURL(qrCodeData, {
+            // Generate QR code with the validation URL as the data
+            // This ensures scanning the QR code will directly open the validation URL
+            qrCodeDataUrl = await QRCode.toDataURL(validationUrl, {
               errorCorrectionLevel: 'H',
               type: 'image/png',
               margin: 1,

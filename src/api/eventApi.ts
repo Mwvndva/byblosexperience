@@ -655,30 +655,22 @@ export const purchaseTickets = async (data: PurchaseTicketData, retryCount = 0):
         quantity: quantity
       });
       
-      // Generate validation URL first (needed for QR code)
+      // Generate secure validation URL with event ID and ticket number
       const getValidationUrl = (ticketNumber: string) => {
         const baseUrl = import.meta.env.VITE_BASE_URL || window.location.origin;
-        return `${baseUrl}/tickets/validate/${ticketNumber}?qr=true`;
+        const encodedTicketNumber = encodeURIComponent(ticketNumber);
+        return `${baseUrl}/e/${event.id}/tickets/validate?ticket=${encodedTicketNumber}&v=${Date.now()}`;
       };
 
       const ticketNumber = ticket.ticketNumber || ticket.ticket_number;
       const validationUrl = getValidationUrl(ticketNumber);
 
-      // Generate QR code with ticket data
+      // Generate QR code with the validation URL as the data
       const generateQRCode = async (ticketNumber: string) => {
         try {
-          const qrData = JSON.stringify({
-            ticketNumber,
-            eventId: event.id,
-            eventName: event.name,
-            customerEmail: data.customerEmail,
-            customerName: data.customerName,
-            timestamp: new Date().toISOString(),
-            // Include validation URL in the QR code data for redundancy
-            validationUrl
-          });
-          
-          return await QRCode.toDataURL(qrData, {
+          // Use the validation URL as the QR code data
+          // This ensures scanning the QR code will directly open the validation URL
+          return await QRCode.toDataURL(validationUrl, {
             errorCorrectionLevel: 'H',
             type: 'image/png',
             margin: 1,
