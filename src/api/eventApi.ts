@@ -133,7 +133,7 @@ export const getPublicEvent = async (id: string | number): Promise<Event> => {
     console.log('Response data:', response.data);
     
     if (response.status === 200 && response.data?.status === 'success') {
-      return response.data.data.event;
+      return response.data.data; // The event data is directly in response.data.data
     }
     
     // If we get here, there was an error
