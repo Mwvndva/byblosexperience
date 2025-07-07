@@ -408,7 +408,6 @@ const Event = {
         WHERE tt.event_id = $1 
           AND (tt.sales_start_date IS NULL OR tt.sales_start_date <= NOW())
           AND (tt.sales_end_date IS NULL OR tt.sales_end_date >= NOW())
-          AND tt.is_active = true
         ORDER BY tt.price ASC, tt.name ASC
       `;
       
@@ -444,7 +443,6 @@ const Event = {
           max_per_order: 10,
           sales_start_date: null,
           sales_end_date: null,
-          is_active: true,
           total_created: 0,
           total_sold: 0,
           is_default: true
