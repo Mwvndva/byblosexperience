@@ -26,8 +26,11 @@ router.use((req, res, next) => {
 // PUBLIC ROUTES - No authentication required
 // ==============================================
 
+// Create a separate router for public routes to avoid route conflicts
+const publicRouter = express.Router();
+
 // 1. First, define the static route for upcoming events with an exact match
-router.get('/public/upcoming', (req, res, next) => {
+publicRouter.get('/upcoming', (req, res, next) => {
   const requestId = req.id || 'no-request-id';
   console.log(`[${requestId}] GET /public/upcoming`);
   console.log(`[${requestId}] Query params:`, req.query);
@@ -35,7 +38,7 @@ router.get('/public/upcoming', (req, res, next) => {
 }, getUpcomingEvents);
 
 // 2. Then, define the ticket types route with a more specific pattern
-router.get('/public/:eventId(\\d+|\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12})/ticket-types', (req, res, next) => {
+publicRouter.get('/:eventId(\\d+|\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12})/ticket-types', (req, res, next) => {
   const { eventId } = req.params;
   const requestId = req.id || 'no-request-id';
   
@@ -44,7 +47,7 @@ router.get('/public/:eventId(\\d+|\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12})/ticket-ty
 }, getEventTicketTypes);
 
 // 3. Then, define the specific event details route with a more specific pattern
-router.get('/public/:eventId(\\d+|\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12})', (req, res, next) => {
+publicRouter.get('/:eventId(\\d+|\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12})', (req, res, next) => {
   const { eventId } = req.params;
   const requestId = req.id || 'no-request-id';
   
@@ -53,14 +56,14 @@ router.get('/public/:eventId(\\d+|\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12})', (req, r
 }, getPublicEvent);
 
 // 4. Finally, catch-all for invalid public routes
-router.get('/public/*', (req, res) => {
+publicRouter.get('*', (req, res) => {
   const requestId = req.id || 'no-request-id';
-  const path = req.path.replace(/^\/public\//, '');
+  const path = req.path;
   
-  console.log(`[${requestId}] Invalid public endpoint: /public/${path}`);
+  console.log(`[${requestId}] Invalid public endpoint: /public${path}`);
   
   // Special case for /public/upcoming with incorrect method
-  if (path === 'upcoming') {
+  if (path === '/upcoming') {
     return res.status(405).json({
       status: 'error',
       message: 'Method not allowed. Use GET /api/events/public/upcoming',
@@ -69,10 +72,11 @@ router.get('/public/*', (req, res) => {
   }
   
   // Check if it's an invalid event ID format
-  if (!/^\d+$/.test(path) && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(path)) {
+  const pathWithoutSlash = path.replace(/^\//, '');
+  if (!/^\d+$/.test(pathWithoutSlash) && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pathWithoutSlash)) {
     return res.status(400).json({
       status: 'error',
-      message: 'Invalid event ID format. Please provide a valid numeric or UUID event ID.',
+      message: 'Invalid event ID format. Please provide a valid numeric or UUID event ID, or use /public/upcoming for upcoming events.',
       requestId,
       receivedPath: path
     });
@@ -83,9 +87,12 @@ router.get('/public/*', (req, res) => {
     status: 'error',
     message: 'Event not found',
     requestId,
-    eventId: path
+    eventId: pathWithoutSlash
   });
 });
+
+// Mount the public router under /public
+router.use('/public', publicRouter);
 
 // ==============================================
 // PROTECTED ROUTES - Require authentication

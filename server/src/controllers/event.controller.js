@@ -1280,8 +1280,11 @@ export const getPublicEvent = async (req, res) => {
     });
   }
   
-  // Convert to number if it's a numeric string, otherwise keep as is (for UUIDs)
-  const eventIdToUse = isNaN(eventId) ? eventId : parseInt(eventId, 10);
+  // Log the event ID type for debugging
+  console.log(`[${requestId}] Event ID type:`, typeof eventId, 'value:', eventId);
+  
+  // Use the event ID as is (it's already validated by the route)
+  const eventIdToUse = eventId;
   
   try {
     console.log(`[${requestId}] Fetching public event with ID: ${eventIdToUse}`);
