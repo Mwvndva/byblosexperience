@@ -34,19 +34,25 @@ router.get('/public/upcoming', (req, res, next) => {
   next();
 }, getUpcomingEvents);
 
-// 2. Then, define the ticket types route with numeric validation
-router.get(['/public/:eventId(\\d+)/ticket-types', '/public/0/ticket-types'], (req, res, next) => {
+// 2. Then, define the ticket types route with UUID validation
+router.get('/public/:eventId/ticket-types', (req, res, next) => {
   const { eventId } = req.params;
   const requestId = req.id || 'no-request-id';
+  
+  // Convert to number if it's a numeric string, otherwise keep as is (for UUIDs)
+  req.params.eventId = isNaN(eventId) ? eventId : parseInt(eventId, 10);
   
   console.log(`[${requestId}] GET /public/${eventId}/ticket-types`);
   next();
 }, getEventTicketTypes);
 
-// 3. Then, define the specific event details route with numeric validation
-router.get(['/public/:eventId(\\d+)', '/public/0'], (req, res, next) => {
+// 3. Then, define the specific event details route with UUID validation
+router.get('/public/:eventId', (req, res, next) => {
   const { eventId } = req.params;
   const requestId = req.id || 'no-request-id';
+  
+  // Convert to number if it's a numeric string, otherwise keep as is (for UUIDs)
+  req.params.eventId = isNaN(eventId) ? eventId : parseInt(eventId, 10);
   
   console.log(`[${requestId}] GET /public/${eventId}`);
   next();
