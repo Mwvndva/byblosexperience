@@ -26,7 +26,7 @@ router.use((req, res, next) => {
 // PUBLIC ROUTES - No authentication required
 // ==============================================
 
-// 1. Get upcoming events (public)
+// 1. Get upcoming events (public) - must be before any dynamic routes
 router.get('/public/upcoming', (req, res, next) => {
   const requestId = req.id || 'no-request-id';
   console.log(`[${requestId}] GET /public/upcoming`);
@@ -48,13 +48,24 @@ router.get('/public/:eventId(\\d+)', (req, res, next) => {
   next();
 }, getPublicEvent);
 
-// 4. Catch-all for invalid public event IDs (must be after all other public routes)
-router.get('/public/:invalidId', (req, res) => {
+// 4. Catch-all for invalid public routes
+router.get('/public/*', (req, res) => {
   const requestId = req.id || 'no-request-id';
-  console.log(`[${requestId}] Invalid public endpoint: /public/${req.params.invalidId}`);
+  const path = req.path.replace(/^\/public\//, '');
+  
+  console.log(`[${requestId}] Invalid public endpoint: /public/${path}`);
+  
+  // Special case for /public/upcoming with incorrect method
+  if (path === 'upcoming' && req.method !== 'GET') {
+    return res.status(405).json({
+      status: 'error',
+      message: 'Method not allowed. Use GET /api/events/public/upcoming',
+      requestId
+    });
+  }
   
   // Check if it's a numeric ID but not a valid endpoint
-  if (/^\d+$/.test(req.params.invalidId)) {
+  if (/^\d+$/.test(path)) {
     return res.status(404).json({
       status: 'error',
       message: 'Event not found',
