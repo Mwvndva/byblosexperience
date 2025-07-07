@@ -48,21 +48,24 @@ router.get('/public/:eventId(\\d+)', (req, res, next) => {
   next();
 }, getPublicEvent);
 
-// 4. Catch any invalid public routes that aren't numbers
+// 4. Catch-all for invalid public event IDs (must be after all other public routes)
 router.get('/public/:invalidId', (req, res) => {
-  res.status(400).json({
-    status: 'error',
-    message: 'Invalid event ID. Must be a number.'
-  });
-});
-
-// 4. Catch-all for invalid public event IDs
-router.get('/public/:eventId([^0-9]+)', (req, res) => {
   const requestId = req.id || 'no-request-id';
-  console.log(`[${requestId}] Invalid event ID format: ${req.params.eventId}`);
+  console.log(`[${requestId}] Invalid public endpoint: /public/${req.params.invalidId}`);
+  
+  // Check if it's a numeric ID but not a valid endpoint
+  if (/^\d+$/.test(req.params.invalidId)) {
+    return res.status(404).json({
+      status: 'error',
+      message: 'Event not found',
+      requestId
+    });
+  }
+  
+  // For non-numeric paths
   res.status(400).json({
     status: 'error',
-    message: 'Invalid event ID format. Event ID must be a number.',
+    message: 'Invalid endpoint. Did you mean /public/upcoming?',
     requestId
   });
 });
