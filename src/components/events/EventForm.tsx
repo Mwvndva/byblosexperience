@@ -25,8 +25,6 @@ const eventFormSchema = z.object({
   location: z.string().min(1, 'Location is required'),
   venue: z.string().min(1, 'Venue name is required'),
   image: z.instanceof(File).optional(),
-  isOnline: z.boolean().default(false),
-  onlineUrl: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
   ticketTypes: z.array(
     z.object({
       id: z.string().optional(),
@@ -63,13 +61,11 @@ export function EventForm({ defaultValues, onSubmit, isSubmitting }: EventFormPr
   } = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
     defaultValues: {
-      isOnline: false,
       ticketTypes: [{ name: 'General Admission', price: 0, quantity: 100 }],
       ...defaultValues,
     },
   });
 
-  const isOnline = watch('isOnline');
   const ticketTypes = watch('ticketTypes');
 
   // Helper function to safely format time
@@ -176,27 +172,16 @@ export function EventForm({ defaultValues, onSubmit, isSubmitting }: EventFormPr
         <div className="space-y-6">
           <h3 className="text-lg font-medium">Event Details</h3>
           
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <div>
-              <Label htmlFor="title">Event Title *</Label>
-              <Input
-                id="title"
-                {...register('title')}
-                className={errors.title ? 'border-red-500' : ''}
-              />
-              {errors.title && (
-                <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
-              )}
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="isOnline"
-                checked={isOnline}
-                onCheckedChange={(checked) => setValue('isOnline', checked)}
-              />
-              <Label htmlFor="isOnline">This is an online event</Label>
-            </div>
+          <div>
+            <Label htmlFor="title">Event Title *</Label>
+            <Input
+              id="title"
+              {...register('title')}
+              className={errors.title ? 'border-red-500' : ''}
+            />
+            {errors.title && (
+              <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
+            )}
           </div>
 
           <div>
@@ -318,46 +303,31 @@ export function EventForm({ defaultValues, onSubmit, isSubmitting }: EventFormPr
             </div>
           </div>
 
-          {isOnline ? (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
-              <Label htmlFor="onlineUrl">Event URL *</Label>
+              <Label htmlFor="venue">Venue Name *</Label>
               <Input
-                id="onlineUrl"
-                placeholder="https://example.com/event"
-                {...register('onlineUrl')}
-                className={errors.onlineUrl ? 'border-red-500' : ''}
+                id="venue"
+                {...register('venue')}
+                className={errors.venue ? 'border-red-500' : ''}
               />
-              {errors.onlineUrl && (
-                <p className="mt-1 text-sm text-red-600">{errors.onlineUrl.message}</p>
+              {errors.venue && (
+                <p className="mt-1 text-sm text-red-600">{errors.venue.message}</p>
               )}
             </div>
-          ) : (
-            <>
-              <div>
-                <Label htmlFor="venue">Venue Name *</Label>
-                <Input
-                  id="venue"
-                  {...register('venue')}
-                  className={errors.venue ? 'border-red-500' : ''}
-                />
-                {errors.venue && (
-                  <p className="mt-1 text-sm text-red-600">{errors.venue.message}</p>
-                )}
-              </div>
-              <div>
-                <Label htmlFor="location">Location *</Label>
-                <Input
-                  id="location"
-                  placeholder="123 Main St, City, Country"
-                  {...register('location')}
-                  className={errors.location ? 'border-red-500' : ''}
-                />
-                {errors.location && (
-                  <p className="mt-1 text-sm text-red-600">{errors.location.message}</p>
-                )}
-              </div>
-            </>
-          )}
+            <div>
+              <Label htmlFor="location">Location *</Label>
+              <Input
+                id="location"
+                placeholder="123 Main St, City, Country"
+                {...register('location')}
+                className={errors.location ? 'border-red-500' : ''}
+              />
+              {errors.location && (
+                <p className="mt-1 text-sm text-red-600">{errors.location.message}</p>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Ticket Types */}
