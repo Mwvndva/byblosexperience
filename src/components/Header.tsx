@@ -30,26 +30,30 @@ const Header = () => {
             >
               <Instagram className="h-5 w-5" />
             </a>
-            <Link to="/organizer/events/new">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="border-black text-gray-700 hover:bg-gray-50 flex items-center gap-1.5"
-              >
-                <Calendar className="h-4 w-4" />
-                <span className="text-sm font-medium">Add Event</span>
-              </Button>
-            </Link>
-            <Link to="/seller">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="border-black text-gray-700 hover:bg-gray-50 flex items-center gap-1.5"
-              >
-                <ShoppingBag className="h-4 w-4" />
-                <span className="text-sm font-medium">Become a Seller</span>
-              </Button>
-            </Link>
+            <div className="flex items-center space-x-2">
+              <Link to="/organizer/events/new">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="border-black text-gray-700 hover:bg-gray-50 flex items-center gap-1 h-8 px-2 sm:px-3"
+                  aria-label="Organizer"
+                >
+                  <Calendar className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
+                  <span className="hidden sm:inline text-xs font-medium">Organizer</span>
+                </Button>
+              </Link>
+              <Link to="/seller">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="border-black text-gray-700 hover:bg-gray-50 flex items-center gap-1 h-8 px-2 sm:px-3"
+                  aria-label="Sell Clothes"
+                >
+                  <ShoppingBag className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
+                  <span className="hidden sm:inline text-xs font-medium">Sell</span>
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
