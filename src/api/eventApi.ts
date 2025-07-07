@@ -655,7 +655,7 @@ export const purchaseTickets = async (data: PurchaseTicketData, retryCount = 0):
         quantity: quantity
       });
       
-      // Generate secure validation URL with event ID and ticket number
+      // Generate secure validation URL with ticket number
       const getValidationUrl = (ticketNumber: string) => {
         // In production, always use the production domain
         let baseUrl;
@@ -670,13 +670,9 @@ export const purchaseTickets = async (data: PurchaseTicketData, retryCount = 0):
         const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
         console.log('Using frontend base URL for validation:', cleanBaseUrl);
         const encodedTicketNumber = encodeURIComponent(ticketNumber);
-        // Ensure we have a valid event ID
-        const eventId = event?.id || data.eventId;
-        if (!eventId) {
-          console.error('Missing event ID for ticket validation URL');
-          throw new Error('Missing event ID for ticket validation');
-        }
-        return `${cleanBaseUrl}/e/${eventId}/tickets/validate?ticket=${encodedTicketNumber}&v=${Date.now()}`;
+        
+        // The validation URL should match our frontend route: /tickets/validate/:ticketNumber
+        return `${cleanBaseUrl}/tickets/validate/${encodedTicketNumber}?v=${Date.now()}`;
       };
 
       const ticketNumber = ticket.ticketNumber || ticket.ticket_number;

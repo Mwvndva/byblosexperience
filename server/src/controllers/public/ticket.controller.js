@@ -349,7 +349,10 @@ export const purchaseTickets = async (req, res, next) => {
             console.error('Missing event ID for ticket validation URL');
             throw new Error('Missing event ID for ticket validation');
           }
-          const validationUrl = `${baseUrl}/e/${eventId}/tickets/validate?ticket=${ticketNumber}&v=${Date.now()}`;
+          
+          // Generate the validation URL that matches our frontend route
+          // The frontend expects: /tickets/validate/:ticketNumber
+          const validationUrl = `${baseUrl}/tickets/validate/${ticketNumber}?v=${Date.now()}`;
           
           try {
             // Generate QR code with the validation URL as the data
