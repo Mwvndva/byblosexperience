@@ -350,13 +350,13 @@ export const getOrganizerEvents = async (req, res) => {
     const organizerId = req.user.id;
     
     let query = `
-      SELECT e.*, 
-             COUNT(DISTINCT t.id) as ticket_count,
-             COUNT(DISTINCT o.id) as order_count,
-             COALESCE(SUM(o.total_amount), 0) as total_revenue
+      SELECT 
+        e.*, 
+        COUNT(DISTINCT t.id) as ticket_count,
+        COUNT(DISTINCT t.customer_email) as customer_count,
+        COALESCE(SUM(t.total_price), 0) as total_revenue
       FROM events e
       LEFT JOIN tickets t ON e.id = t.event_id
-      LEFT JOIN orders o ON t.order_id = o.id
       WHERE e.organizer_id = $1
     `;
     
@@ -374,13 +374,65 @@ export const getOrganizerEvents = async (req, res) => {
       queryParams.push(searchTerm, searchTerm);
     }
     
-    query += `
-      GROUP BY e.id
-      ORDER BY e.start_date DESC
-      LIMIT $${paramCount++} OFFSET $${paramCount}
+    // First, get the event IDs with the current filters to handle pagination
+    let eventIdsQuery = `
+      SELECT e.id 
+      FROM events e
+      WHERE e.organizer_id = $1
     `;
     
-    queryParams.push(limit, offset);
+    const eventIdsParams = [organizerId];
+    let paramIndex = 2;
+    
+    if (status) {
+      eventIdsQuery += ` AND e.status = $${paramIndex++}`;
+      eventIdsParams.push(status);
+    }
+    
+    if (search) {
+      eventIdsQuery += ` AND (e.name ILIKE $${paramIndex++} OR e.description ILIKE $${paramIndex})`;
+      const searchTerm = `%${search}%`;
+      eventIdsParams.push(searchTerm, searchTerm);
+    }
+    
+    // Apply pagination to get only the IDs we need
+    eventIdsQuery += `
+      ORDER BY e.start_date DESC
+      LIMIT $${paramIndex++} OFFSET $${paramIndex}
+    `;
+    eventIdsParams.push(limit, offset);
+    
+    const eventIdsResult = await client.query(eventIdsQuery, eventIdsParams);
+    const eventIds = eventIdsResult.rows.map(row => row.id);
+    
+    if (eventIds.length === 0) {
+      // No events found, return empty result
+      return res.status(200).json({
+        status: 'success',
+        data: {
+          events: [],
+          pagination: {
+            total: 0,
+            page: parseInt(page),
+            limit: parseInt(limit),
+            totalPages: 0
+          }
+        }
+      });
+    }
+    
+    // Now get the full event data with statistics for just these events
+    query += ` AND e.id = ANY($${paramCount++}::int[])`;
+    queryParams.push(eventIds);
+    
+    // Add GROUP BY clause with all non-aggregated columns
+    query += `
+      GROUP BY 
+        e.id, e.organizer_id, e.name, e.description, e.image_url, 
+        e.location, e.ticket_quantity, e.ticket_price, e.start_date, 
+        e.end_date, e.created_at, e.updated_at, e.status
+      ORDER BY e.start_date DESC
+    `;
     
     const result = await client.query(query, queryParams);
     
