@@ -1476,12 +1476,17 @@ export const getPublicEvent = async (req, res) => {
       end_date: event.end_date ? new Date(event.end_date).toISOString() : null,
       status: event.status || 'draft',
       ticket_quantity: parseInt(event.ticket_quantity || '0', 10),
-      available_tickets: parseInt(event.available_tickets || event.ticket_quantity || '0', 10),
+      available_tickets: event.available_tickets || 0,
+      tickets_sold: event.tickets_sold || 0,
       ticket_price: parseFloat(event.ticket_price || '0'),
       created_at: event.created_at ? new Date(event.created_at).toISOString() : new Date().toISOString(),
       updated_at: event.updated_at ? new Date(event.updated_at).toISOString() : new Date().toISOString(),
-      organizer_id: event.organizer_id || null,
-      // Include ticket types if available
+      organizer: {
+        id: event.organizer_id || null,
+        name: event.organizer_name || 'Organizer',
+        email: event.organizer_email || null,
+        phone: event.organizer_phone || null
+      },
       ticket_types: event.ticket_types || []
     };
     

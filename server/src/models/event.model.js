@@ -367,8 +367,9 @@ const Event = {
       const eventQuery = `
         SELECT 
           e.*,
-          o.business_name as organizer_name,
-          o.logo_url as organizer_logo
+          o.full_name as organizer_name,
+          o.email as organizer_email,
+          o.phone as organizer_phone
         FROM events e
         LEFT JOIN organizers o ON e.organizer_id = o.id
         WHERE e.id = $1
