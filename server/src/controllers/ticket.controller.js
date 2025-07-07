@@ -315,8 +315,12 @@ export default class TicketController {
   static async validateTicket(req, res, next) {
     try {
       const { ticketNumber } = req.params;
+      const { force = false } = req.query; // Optional force parameter to re-scan already scanned tickets
+      
+      console.log(`Validating ticket: ${ticketNumber}`);
       
       if (!ticketNumber) {
+        console.error('No ticket number provided');
         return next(new AppError('Ticket number is required', 400));
       }
 
@@ -324,50 +328,76 @@ export default class TicketController {
       const ticket = await TicketRepository.findByTicketNumber(ticketNumber);
       
       if (!ticket) {
+        console.error(`Ticket not found: ${ticketNumber}`);
         return res.status(200).json({
+          success: false,
           valid: false,
           status: 'not_found',
-          message: 'Ticket not found'
+          message: 'Ticket not found',
+          timestamp: new Date().toISOString()
         });
       }
 
       // Check if ticket is already scanned
-      if (ticket.scanned) {
+      if (ticket.scanned && !force) {
+        console.log(`Ticket already scanned: ${ticketNumber} at ${ticket.scanned_at}`);
         return res.status(200).json({
+          success: false,
           valid: false,
           status: 'already_scanned',
-          message: 'Ticket has already been scanned',
+          message: 'This ticket has already been scanned',
           ticket: {
             id: ticket.id,
             ticketNumber: ticket.ticket_number,
+            eventId: ticket.event_id,
             eventName: ticket.event?.name || 'Event',
             customerName: ticket.customer_name || 'Customer',
+            customerEmail: ticket.customer_email,
+            ticketType: ticket.ticket_type,
+            status: ticket.status,
             scanned: true,
-            scannedAt: ticket.scanned_at
-          }
+            scannedAt: ticket.scanned_at,
+            purchaseDate: ticket.created_at
+          },
+          timestamp: new Date().toISOString()
         });
       }
 
-      // Mark ticket as scanned
-      const updatedTicket = await TicketRepository.markAsScanned(ticket.id);
-
-      return res.status(200).json({
-        valid: true,
-        status: 'valid',
-        message: 'Ticket is valid',
-        ticket: {
-          id: updatedTicket.id,
-          ticketNumber: updatedTicket.ticket_number,
-          eventName: updatedTicket.event?.name || 'Event',
-          customerName: updatedTicket.customer_name || 'Customer',
-          scanned: true,
-          scannedAt: updatedTicket.scanned_at
-        }
-      });
+      try {
+        // Mark ticket as scanned
+        console.log(`Marking ticket ${ticket.id} as scanned...`);
+        const updatedTicket = await TicketRepository.markAsScanned(ticket.id);
+        
+        console.log(`Successfully validated ticket: ${ticketNumber}`);
+        return res.status(200).json({
+          success: true,
+          valid: true,
+          status: 'valid',
+          message: 'Ticket is valid and has been marked as scanned',
+          ticket: {
+            id: updatedTicket.id,
+            ticketNumber: updatedTicket.ticket_number,
+            eventId: updatedTicket.event_id,
+            eventName: updatedTicket.event?.name || 'Event',
+            customerName: updatedTicket.customer_name || 'Customer',
+            customerEmail: updatedTicket.customer_email,
+            ticketType: updatedTicket.ticket_type,
+            status: updatedTicket.status,
+            scanned: true,
+            scannedAt: updatedTicket.scanned_at,
+            purchaseDate: updatedTicket.created_at
+          },
+          timestamp: new Date().toISOString()
+        });
+        
+      } catch (updateError) {
+        console.error(`Error updating ticket ${ticket.id}:`, updateError);
+        return next(new AppError('Error updating ticket status', 500));
+      }
 
     } catch (error) {
       console.error('Error validating ticket:', error);
-      next(new AppError('Error validating ticket', 500));
+      next(new AppError(error.message || 'Error validating ticket', 500));
     }
   }
 }

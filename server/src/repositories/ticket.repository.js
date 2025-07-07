@@ -325,22 +325,33 @@ export default class TicketRepository {
    * @returns {Promise<Object>} The updated ticket
    */
   static async markAsScanned(ticketId) {
-    const sql = `
-      UPDATE tickets 
-      SET 
-        scanned = true,
-        scanned_at = NOW(),
-        updated_at = NOW()
-      WHERE id = $1
-      RETURNING *
-    `;
-    
-    const result = await query(sql, [ticketId]);
-    
-    if (result.rows.length === 0) {
-      throw new Error('Ticket not found');
+    try {
+      console.log(`Marking ticket ${ticketId} as scanned...`);
+      
+      const sql = `
+        UPDATE tickets 
+        SET 
+          scanned = true,
+          scanned_at = NOW(),
+          updated_at = NOW(),
+          status = 'scanned'  -- Explicitly set status to 'scanned'
+        WHERE id = $1
+        RETURNING *
+      `;
+      
+      const result = await query(sql, [ticketId]);
+      
+      if (result.rows.length === 0) {
+        console.error(`Ticket not found with ID: ${ticketId}`);
+        throw new Error('Ticket not found');
+      }
+      
+      console.log(`Successfully marked ticket ${ticketId} as scanned`);
+      return result.rows[0];
+      
+    } catch (error) {
+      console.error(`Error marking ticket ${ticketId} as scanned:`, error);
+      throw error; // Re-throw to be handled by the controller
     }
-    
-    return result.rows[0];
   }
 }

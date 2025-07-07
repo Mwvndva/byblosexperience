@@ -7,7 +7,30 @@ const router = express.Router();
 
 // Public endpoints (no authentication required)
 router.post('/send-confirmation', sendTicketEmail);
-router.get('/validate/:ticketNumber', TicketController.validateTicket);
+
+// Ticket validation endpoint - handles both GET and POST requests
+router.get('/validate/:ticketNumber', (req, res, next) => {
+  // Add security headers
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  
+  // Add CORS headers
+  res.setHeader('Access-Control-Allow-Origin', process.env.FRONTEND_URL || '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  // Process the validation request
+  TicketController.validateTicket(req, res, next);
+});
+
+// Also support POST requests for validation (useful for some QR code scanners)
+router.post('/validate/:ticketNumber', TicketController.validateTicket);
 
 // Protected endpoints (require authentication)
 const protectedRouter = express.Router();

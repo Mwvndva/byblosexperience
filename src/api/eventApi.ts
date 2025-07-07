@@ -657,11 +657,18 @@ export const purchaseTickets = async (data: PurchaseTicketData, retryCount = 0):
       
       // Generate secure validation URL with event ID and ticket number
       const getValidationUrl = (ticketNumber: string) => {
-        const baseUrl = import.meta.env.VITE_BASE_URL || 
-                       window.location.origin;
+        // In production, always use the production domain
+        let baseUrl;
+        if (import.meta.env.PROD) {
+          baseUrl = 'https://byblosexperience.vercel.app';
+        } else {
+          // In development, use environment variable or current origin
+          baseUrl = import.meta.env.VITE_BASE_URL || window.location.origin;
+        }
         
         // Ensure the base URL doesn't end with a slash
         const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+        console.log('Using frontend base URL for validation:', cleanBaseUrl);
         const encodedTicketNumber = encodeURIComponent(ticketNumber);
         // Ensure we have a valid event ID
         const eventId = event?.id || data.eventId;
