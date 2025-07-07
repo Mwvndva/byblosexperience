@@ -869,6 +869,7 @@ export const getUpcomingEvents = async (req, res) => {
     console.log(`[${requestId}] Found ${events.length} upcoming events`);
     
     // Format the response to match frontend expectations
+    // Frontend expects a direct array of events, not a wrapped response
     const response = events.map(event => ({
       id: event.id,
       name: event.name || 'Unnamed Event',
@@ -899,12 +900,8 @@ export const getUpcomingEvents = async (req, res) => {
       updated_at: event.updated_at ? new Date(event.updated_at).toISOString() : null
     }));
     
-    res.status(200).json({
-      status: 'success',
-      results: response.length,
-      data: response,
-      requestId
-    });
+    // Return the array of events directly as the response
+    res.status(200).json(response);
       
   } catch (error) {
     console.error(`[${requestId}] Error in getUpcomingEvents controller:`, error);
