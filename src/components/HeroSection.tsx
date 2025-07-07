@@ -44,7 +44,7 @@ const HeroSection = ({ onExploreClick, onEventsClick }: HeroSectionProps) => {
           
           {/* Subtitle */}
           <p className="text-xl md:text-2xl text-gray-200 mb-8 max-w-2xl mx-auto">
-             [ cloud based thrift store / event management ]
+             Events Thrifts Music
           </p>
           
           {/* Description */}
