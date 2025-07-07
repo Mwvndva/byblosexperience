@@ -289,23 +289,37 @@ app.use('/api/organizers', protectedRouter);
 
 // Log all registered routes for debugging
 const printRoutes = (router, prefix = '') => {
+  // Skip if router or router.stack is undefined
+  if (!router || !router.stack) {
+    console.log('No routes to display - router or router.stack is undefined');
+    return;
+  }
+
   router.stack.forEach((middleware) => {
+    if (!middleware) return;
+    
     if (middleware.route) {
       // Routes registered directly on the app
-      const methods = Object.keys(middleware.route.methods).join(',').toUpperCase();
-      console.log(`${methods.padEnd(7)} ${prefix}${middleware.route.path}`);
-    } else if (middleware.name === 'router' || middleware.name === 'router') {
+      const methods = middleware.route.methods ? 
+        Object.keys(middleware.route.methods).join(',').toUpperCase() : 'ALL';
+      console.log(`${methods.padEnd(7)} ${prefix}${middleware.route.path || ''}`);
+    } else if (middleware.name === 'router' && middleware.handle && middleware.handle.stack) {
       // Router middleware
-      const path = middleware.regexp.toString()
-        .replace('/^\\', '')
-        .replace('\\/?', '')
-        .replace('(?=\\/|$)', '')
-        .replace(/\/(?:([^\/]+?))\//g, '/:$1/');
+      let path = '';
+      if (middleware.regexp) {
+        path = middleware.regexp.toString()
+          .replace(/^\^\\\//, '')  // Remove leading ^\/
+          .replace(/\\\/\?/g, '')  // Remove escaped /?
+          .replace(/\(\?=[^)]*\$\//, '') // Remove lookahead groups
+          .replace(/\/i$/, '')      // Remove /i at the end
+          .replace(/\(([^)]+)\)/g, ':$1'); // Convert (param) to :param
+      }
       
       middleware.handle.stack.forEach((handler) => {
-        if (handler.route) {
-          const methods = Object.keys(handler.route.methods).join(',').toUpperCase();
-          console.log(`${methods.padEnd(7)} ${prefix}${path}${handler.route.path}`);
+        if (handler && handler.route) {
+          const methods = handler.route.methods ? 
+            Object.keys(handler.route.methods).join(',').toUpperCase() : 'ALL';
+          console.log(`${methods.padEnd(7)} ${prefix}${path}${handler.route.path || ''}`);
         }
       });
     }

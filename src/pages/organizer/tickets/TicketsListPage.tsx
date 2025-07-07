@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Search, Filter, MoreHorizontal, Loader2, Ticket, Download, Printer, User, Calendar, Mail, CreditCard, Hash, Info } from 'lucide-react';
+import { Search, MoreHorizontal, Loader2, Ticket, User, Calendar, Mail, CreditCard, Hash, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
@@ -136,16 +136,7 @@ export default function TicketsListPage() {
             </p>
           )}
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Export
-          </Button>
-          <Button variant="outline">
-            <Printer className="mr-2 h-4 w-4" />
-            Print
-          </Button>
-        </div>
+
       </div>
 
       <div className="flex items-center gap-4 mb-6">
@@ -159,10 +150,7 @@ export default function TicketsListPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <Button variant="outline">
-          <Filter className="mr-2 h-4 w-4" />
-          Filter
-        </Button>
+
       </div>
 
       <div className="border rounded-lg">

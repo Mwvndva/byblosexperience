@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, MoreHorizontal, Loader2, RefreshCw, Calendar as CalendarIcon, MapPin } from 'lucide-react';
+import { Plus, MoreHorizontal, Loader2, RefreshCw, Calendar as CalendarIcon, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
@@ -68,10 +68,9 @@ export default function EventsListPage() {
   const navigate = useNavigate();
   const [events, setEvents] = useState<Event[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<EventStatus | 'all'>('all');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [pagination, setPagination] = useState({
     page: 1,
@@ -80,16 +79,13 @@ export default function EventsListPage() {
     totalPages: 1
   });
 
-  const fetchEvents = useCallback(async (isRefreshing = false) => {
+  const fetchEvents = useCallback(async () => {
     try {
-      if (!isRefreshing) setLoading(true);
-      else setRefreshing(true);
+      setIsLoading(true);
       
       const params = new URLSearchParams({
         page: pagination.page.toString(),
         limit: pagination.limit.toString(),
-        status: statusFilter !== 'all' ? statusFilter : '',
-        search: searchQuery,
       });
 
       const response = await api.get(`/organizers/events?${params}`);
@@ -111,41 +107,29 @@ export default function EventsListPage() {
         totalPages: paginationData.total_pages || 1
       }));
       setLastUpdated(new Date());
-      
-      if (isRefreshing) {
-        toast.success('Events refreshed');
-      }
     } catch (error) {
       console.error('Error fetching events:', error);
       toast.error('Failed to load events. Please try again later.');
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      setIsLoading(false);
+      setIsRefreshing(false);
     }
-  }, [pagination.page, pagination.limit, statusFilter, searchQuery]);
+  }, [pagination.page, pagination.limit]);
 
   // Initial fetch and setup polling
   useEffect(() => {
     fetchEvents();
     
     const intervalId = setInterval(() => {
-      fetchEvents(true);
+      fetchEvents();
     }, POLLING_INTERVAL);
     
     return () => clearInterval(intervalId);
   }, [fetchEvents]);
   
-  // Handle search and filter changes
-  useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      fetchEvents();
-    }, 500);
-    
-    return () => clearTimeout(debounceTimer);
-  }, [searchQuery, statusFilter, fetchEvents]);
-  
   const handleRefresh = () => {
-    fetchEvents(true);
+    setIsRefreshing(true);
+    fetchEvents();
   };
 
   const handleDeleteEvent = async (eventId: number, event: React.MouseEvent) => {
@@ -210,7 +194,7 @@ export default function EventsListPage() {
     }
   };
 
-  if (loading && !refreshing) {
+  if (isLoading && !isRefreshing) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -235,9 +219,9 @@ export default function EventsListPage() {
             variant="outline" 
             size="sm" 
             onClick={handleRefresh}
-            disabled={refreshing}
+            disabled={isRefreshing}
           >
-            {refreshing ? (
+            {isRefreshing ? (
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
             ) : (
               <RefreshCw className="h-4 w-4 mr-2" />
@@ -255,34 +239,8 @@ export default function EventsListPage() {
 
       <div className="grid gap-4 mb-6 md:grid-cols-4">
         <div className="md:col-span-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search events by name or location..."
-              className="pl-9 w-full"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
+
         </div>
-        <Select 
-          value={statusFilter} 
-          onValueChange={(value) => setStatusFilter(value as EventStatus | 'all')}
-        >
-          <SelectTrigger className="w-full md:w-[180px]">
-            <Filter className="mr-2 h-4 w-4" />
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Events</SelectItem>
-            <SelectItem value="upcoming">Upcoming</SelectItem>
-            <SelectItem value="published">Active</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-            <SelectItem value="cancelled">Cancelled</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       <Card>
@@ -410,11 +368,9 @@ export default function EventsListPage() {
                     <CalendarIcon className="h-10 w-10 text-muted-foreground/40" />
                     <h3 className="text-lg font-medium">No events found</h3>
                     <p className="text-sm text-muted-foreground">
-                      {searchQuery || statusFilter !== 'all' 
-                        ? 'Try adjusting your search or filter criteria.' 
-                        : 'Create your first event to get started.'}
+                      Showing {pagination.total} events
                     </p>
-                    {!searchQuery && statusFilter === 'all' && (
+                    {pagination.total === 0 && (
                       <Button className="mt-4" asChild>
                         <Link to="/organizer/events/new">
                           <Plus className="mr-2 h-4 w-4" />
