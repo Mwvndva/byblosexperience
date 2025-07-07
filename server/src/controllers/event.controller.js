@@ -839,157 +839,69 @@ export const deleteEvent = async (req, res) => {
     console.error('Delete event error:', error);
     res.status(500).json({
       status: 'error',
-      message: 'An error occurred while deleting the event',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-};
-
-export const updateEventStatus = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-    
-    // Check if the event exists and belongs to the organizer
-    const event = await Event.findById(id);
-    if (!event) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Event not found'
-      });
-    }
-    
-    if (event.organizer_id !== req.user.id) {
-      return res.status(403).json({
-        status: 'error',
-        message: 'You are not authorized to update this event'
-      });
-    }
-
-    const updatedEvent = await Event.updateStatus(id, status);
-    
-    res.status(200).json({
-      status: 'success',
-      data: {
-        event: updatedEvent
-      }
-    });
-  } catch (error) {
-    console.error('Update event status error:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'An error occurred while updating the event status',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'An error occurred while deleting the event'
     });
   }
 };
 
 export const getUpcomingEvents = async (req, res) => {
   const requestId = req.id || 'no-request-id';
-  const client = await pool.connect();
+  const limit = Math.min(parseInt(req.query.limit, 10) || 10, 50); // Limit to max 50 events
+  
+  console.log(`[${requestId}] === getUpcomingEvents controller called ===`);
+  console.log(`[${requestId}] Request URL: ${req.originalUrl}`);
+  console.log(`[${requestId}] Query params:`, req.query);
   
   try {
-    console.log(`[${requestId}] === getUpcomingEvents controller called ===`);
-    console.log(`[${requestId}] Request URL: ${req.originalUrl}`);
-    console.log(`[${requestId}] Query params:`, req.query);
+    console.log(`[${requestId}] Fetching up to ${limit} upcoming events`);
+    const events = await Event.getUpcomingEvents(limit);
     
-    // Parse and validate parameters
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
-    const search = (req.query.search || '').trim();
-    const category = req.query.category;
-    
-    // Build the query
-    let query = `
-      SELECT 
-        e.id, e.name, e.description, e.image_url, e.location,
-        e.ticket_quantity, e.ticket_price, e.start_date, e.end_date,
-        e.status, e.organizer_id, e.created_at, e.updated_at,
-        o.full_name as organizer_name,
-        o.image_url as organizer_image,
-        COUNT(t.id) as tickets_sold,
-        e.ticket_quantity - COUNT(t.id) as available_tickets
-      FROM events e
-      JOIN organizers o ON e.organizer_id = o.id
-      LEFT JOIN tickets t ON e.id = t.event_id
-      WHERE e.status = 'published'
-      AND e.start_date > NOW()
-    `;
-    
-    const queryParams = [];
-    let paramCount = 1;
-    
-    // Add search condition if provided
-    if (search) {
-      query += ` AND (e.name ILIKE $${paramCount} OR e.description ILIKE $${paramCount})`;
-      queryParams.push(`%${search}%`);
-      paramCount++;
+    if (!events || events.length === 0) {
+      console.log(`[${requestId}] No upcoming events found`);
+      return res.status(200).json({
+        status: 'success',
+        results: 0,
+        data: [],
+        requestId
+      });
     }
     
-    // Add category filter if provided
-    if (category) {
-      query += ` AND e.category = $${paramCount}`;
-      queryParams.push(category);
-      paramCount++;
-    }
-    
-    // Group by and order
-    query += `
-      GROUP BY 
-        e.id, e.name, e.description, e.image_url, e.location,
-        e.ticket_quantity, e.ticket_price, e.start_date, e.end_date,
-        e.status, e.organizer_id, e.created_at, e.updated_at,
-        o.id, o.full_name, o.image_url
-      ORDER BY e.start_date ASC
-      LIMIT $${paramCount}
-    `;
-    
-    queryParams.push(limit);
-    
-    // Execute the query
-    const result = await client.query(query, queryParams);
+    console.log(`[${requestId}] Found ${events.length} upcoming events`);
     
     // Format the response
-    const events = result.rows.map(event => ({
-      id: event.id,
-      name: event.name || 'Unnamed Event',
-      description: event.description || '',
-      location: event.location || 'Location not specified',
-      start_date: new Date(event.start_date).toISOString(),
-      end_date: new Date(event.end_date).toISOString(),
-      image_url: event.image_url || '/images/default-event.jpg',
-      status: event.status || 'draft',
-      ticket_quantity: parseInt(event.ticket_quantity || '0', 10),
-      available_tickets: parseInt(event.available_tickets || '0', 10),
-      ticket_price: parseFloat(event.ticket_price || '0'),
-      organizer_id: event.organizer_id,
-      created_at: event.created_at ? new Date(event.created_at).toISOString() : null,
-      updated_at: event.updated_at ? new Date(event.updated_at).toISOString() : null,
-      organizer_name: event.organizer_name,
-      organizer_image: event.organizer_image,
-      tickets_sold: parseInt(event.tickets_sold || '0', 10)
-    }));
+    const response = {
+      status: 'success',
+      results: events.length,
+      data: events.map(event => ({
+        id: event.id,
+        name: event.name,
+        description: event.description,
+        image_url: event.image_url,
+        location: event.location,
+        start_date: event.start_date,
+        end_date: event.end_date,
+        status: event.status,
+        ticket_quantity: event.ticket_quantity,
+        tickets_sold: event.tickets_sold,
+        available_tickets: event.available_tickets,
+        total_revenue: event.total_revenue,
+        ticket_types: event.ticket_types || [],
+        created_at: event.created_at,
+        updated_at: event.updated_at
+      })),
+      requestId
+    };
     
-    console.log(`[${requestId}] Successfully retrieved ${events.length} upcoming events`);
-    
-    // Return the events array directly as the frontend expects
-    return res.status(200).json(events);
-    
+    res.status(200).json(response);
+      
   } catch (error) {
-    console.error(`[${requestId}] Error in getUpcomingEvents:`, {
-      message: error.message,
-      stack: error.stack,
-      originalUrl: req.originalUrl,
-      query: req.query
-    });
-    
-    return res.status(500).json({
+    console.error(`[${requestId}] Error in getUpcomingEvents controller:`, error);
+    res.status(500).json({
       status: 'error',
       message: 'An error occurred while fetching upcoming events',
-      requestId,
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      requestId
     });
-  } finally {
-    client.release();
   }
 };
 

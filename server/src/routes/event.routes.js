@@ -27,10 +27,11 @@ router.use((req, res, next) => {
 // ==============================================
 
 // Create a separate router for public routes to avoid route conflicts
-const publicRouter = express.Router();
+const publicRouter = express.Router({ mergeParams: true });
 
 // 1. First, define the static route for upcoming events with an exact match
-publicRouter.get('/upcoming', (req, res, next) => {
+// Using a special route pattern to ensure it's matched literally
+publicRouter.get('/upcoming$', (req, res, next) => {
   const requestId = req.id || 'no-request-id';
   console.log(`[${requestId}] GET /public/upcoming`);
   console.log(`[${requestId}] Query params:`, req.query);
@@ -38,7 +39,7 @@ publicRouter.get('/upcoming', (req, res, next) => {
 }, getUpcomingEvents);
 
 // 2. Then, define the ticket types route with a more specific pattern
-publicRouter.get('/:eventId(\\d+|\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12})/ticket-types', (req, res, next) => {
+publicRouter.get('/:eventId(\\d+|\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12})/ticket-types$', (req, res, next) => {
   const { eventId } = req.params;
   const requestId = req.id || 'no-request-id';
   
@@ -47,7 +48,7 @@ publicRouter.get('/:eventId(\\d+|\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12})/ticket-typ
 }, getEventTicketTypes);
 
 // 3. Then, define the specific event details route with a more specific pattern
-publicRouter.get('/:eventId(\\d+|\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12})', (req, res, next) => {
+publicRouter.get('/:eventId(\\d+|\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12})$', (req, res, next) => {
   const { eventId } = req.params;
   const requestId = req.id || 'no-request-id';
   
@@ -63,7 +64,7 @@ publicRouter.get('*', (req, res) => {
   console.log(`[${requestId}] Invalid public endpoint: /public${path}`);
   
   // Special case for /public/upcoming with incorrect method
-  if (path === '/upcoming') {
+  if (path === '/upcoming' || path === '/upcoming/') {
     return res.status(405).json({
       status: 'error',
       message: 'Method not allowed. Use GET /api/events/public/upcoming',
@@ -91,7 +92,7 @@ publicRouter.get('*', (req, res) => {
   });
 });
 
-// Mount the public router under /public
+// Mount the public router under /public with strict routing
 router.use('/public', publicRouter);
 
 // ==============================================
