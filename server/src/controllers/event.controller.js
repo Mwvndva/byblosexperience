@@ -1244,13 +1244,9 @@ export const getEventTicketTypes = async (req, res) => {
 };
 
 /**
- * Get public event details by ID
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- */
-/**
  * Get event details for booking page
  * This function provides detailed event information including ticket types and availability
+ * Uses the same logic as getUpcomingEvents but for a single event
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  */
@@ -1274,12 +1270,27 @@ export const getEventForBooking = async (req, res) => {
   }
   
   try {
-    // First, get the basic event info
-    console.log(`[${requestId}] Fetching event with ID: ${eventId}`);
-    const event = await Event.getPublicEvent(eventId);
+    // Use the same logic as getUpcomingEvents but filter by the specific event ID
+    console.log(`[${requestId}] Fetching event with ID: ${eventId} using getUpcomingEvents logic`);
+    
+    // First, try to get the event using the same method as getUpcomingEvents
+    const events = await Event.getUpcomingEvents(50); // Get all upcoming events (up to 50)
+    const event = events.find(e => e.id == eventId); // Use loose equality to match string/number IDs
     
     if (!event) {
-      console.log(`[${requestId}] Event not found or not published for ID: ${eventId}`);
+      console.log(`[${requestId}] Event not found in upcoming events for ID: ${eventId}`);
+      
+      // If not found in upcoming events, try to get it directly as a fallback
+      try {
+        const directEvent = await Event.getPublicEvent(eventId);
+        if (directEvent) {
+          console.log(`[${requestId}] Found event directly:`, directEvent.name);
+          return formatAndSendEventResponse(directEvent, eventId, requestId, res);
+        }
+      } catch (directError) {
+        console.error(`[${requestId}] Error fetching event directly:`, directError);
+      }
+      
       return res.status(404).json({
         status: 'error',
         message: 'Event not found or not published',
@@ -1288,6 +1299,35 @@ export const getEventForBooking = async (req, res) => {
       });
     }
     
+    // Format and send the response
+    return formatAndSendEventResponse(event, eventId, requestId, res);
+    
+  } catch (error) {
+    console.error(`[${requestId}] Error in getEventForBooking:`, {
+      message: error.message,
+      stack: error.stack,
+      eventId,
+      originalUrl: req.originalUrl
+    });
+    
+    return res.status(500).json({
+      status: 'error',
+      message: 'An error occurred while fetching event for booking',
+      requestId,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+/**
+ * Helper function to format and send the event response
+ * @param {Object} event - The event object
+ * @param {string|number} eventId - The event ID
+ * @param {string} requestId - The request ID for logging
+ * @param {Object} res - Express response object
+ */
+async function formatAndSendEventResponse(event, eventId, requestId, res) {
+  try {
     // Get ticket types for the event
     console.log(`[${requestId}] Fetching ticket types for event ID: ${eventId}`);
     const ticketTypes = await Event.getEventTicketTypes(eventId);
@@ -1329,21 +1369,9 @@ export const getEventForBooking = async (req, res) => {
     
     // Return the formatted event data
     return res.status(200).json(formattedEvent);
-    
   } catch (error) {
-    console.error(`[${requestId}] Error in getEventForBooking:`, {
-      message: error.message,
-      stack: error.stack,
-      eventId,
-      originalUrl: req.originalUrl
-    });
-    
-    return res.status(500).json({
-      status: 'error',
-      message: 'An error occurred while fetching event for booking',
-      requestId,
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    console.error(`[${requestId}] Error in formatAndSendEventResponse:`, error);
+    throw error; // Re-throw to be caught by the main catch block
   }
 };
 
