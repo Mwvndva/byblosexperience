@@ -105,6 +105,7 @@ ensureUploadsDir();
 
 // CORS configuration - Consolidated configuration
 const whitelist = [
+  // Development
   'http://localhost:3000',
   'http://127.0.0.1:3000',
   'http://localhost:3001',
@@ -112,11 +113,17 @@ const whitelist = [
   'http://localhost:3002',
   'http://127.0.0.1:3002',
   'http://localhost:5173',
+  
+  // Production domains
   'https://byblosatelier.com',
   'https://www.byblosatelier.com',
   'https://byblosexperience.vercel.app',
-  'https://byblosexperience.onrender.com',
-  'https://*.vercel.app' // Allow all Vercel preview deployments
+  'https://www.byblosexperience.vercel.app',
+  'https://byblos-backend.vercel.app',
+  
+  // Development and preview domains
+  'https://*.vercel.app',  // All Vercel preview deployments
+  'https://*-git-*.vercel.app'  // Vercel branch deployments
 ];
 
 // Add any additional domains from environment variable
@@ -128,27 +135,43 @@ const additionalOrigins = process.env.CORS_ORIGIN
 const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps, curl, postman)
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('CORS: Request with no origin - allowing in development');
+      }
+      return callback(null, true);
+    }
     
-    // Check if origin is in whitelist, additionalOrigins, or if in development
-    const isAllowed = whitelist.some(domain => 
-      origin === domain || 
-      (domain.includes('*') && new RegExp(domain.replace(/\*/g, '.*')).test(origin))
-    ) || additionalOrigins.includes(origin);
+    // Check if origin is in whitelist or additionalOrigins
+    const isAllowed = whitelist.some(domain => {
+      if (domain.includes('*')) {
+        const regex = new RegExp('^' + domain.replace(/\*/g, '.*') + '$');
+        return regex.test(origin);
+      }
+      return origin === domain;
+    }) || additionalOrigins.includes(origin);
     
-    if (isAllowed || process.env.NODE_ENV === 'development') {
+    if (isAllowed) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`CORS: Allowed origin: ${origin}`);
+      }
       return callback(null, true);
     }
     
     // Log rejected origins for debugging
-    console.warn('CORS blocked:', origin);
-    return callback(new Error('Not allowed by CORS'));
+    console.warn(`CORS: Blocked origin: ${origin}`);
+    console.warn('Allowed origins:', [...whitelist, ...additionalOrigins]);
+    return callback(new Error(`Not allowed by CORS: ${origin}`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: [
     'Content-Type', 
-    'Authorization', 
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Access-Control-Allow-Origin',
     'X-Requested-With', 
     'Accept',
     'X-Access-Token',
@@ -170,7 +193,21 @@ const corsOptions = {
 
 // Apply CORS middleware with options
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Enable pre-flight for all routes
+
+// Handle preflight requests
+app.options('*', cors(corsOptions), (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Allow-Origin');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.status(200).end();
+});
+
+// Log CORS configuration
+console.log('CORS Configuration:', {
+  whitelist: [...whitelist, ...additionalOrigins],
+  environment: process.env.NODE_ENV || 'development'
+});
 // Increase JSON and URL-encoded payload size limit to 50MB
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
