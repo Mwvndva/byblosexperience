@@ -868,31 +868,43 @@ export const getUpcomingEvents = async (req, res) => {
     
     console.log(`[${requestId}] Found ${events.length} upcoming events`);
     
-    // Format the response
-    const response = {
-      status: 'success',
-      results: events.length,
-      data: events.map(event => ({
-        id: event.id,
-        name: event.name,
-        description: event.description,
-        image_url: event.image_url,
-        location: event.location,
-        start_date: event.start_date,
-        end_date: event.end_date,
-        status: event.status,
-        ticket_quantity: event.ticket_quantity,
-        tickets_sold: event.tickets_sold,
-        available_tickets: event.available_tickets,
-        total_revenue: event.total_revenue,
-        ticket_types: event.ticket_types || [],
-        created_at: event.created_at,
-        updated_at: event.updated_at
+    // Format the response to match frontend expectations
+    const response = events.map(event => ({
+      id: event.id,
+      name: event.name || 'Unnamed Event',
+      description: event.description || '',
+      image_url: event.image_url || '/images/default-event.jpg',
+      location: event.location || 'Location not specified',
+      start_date: event.start_date ? new Date(event.start_date).toISOString() : null,
+      end_date: event.end_date ? new Date(event.end_date).toISOString() : null,
+      status: event.status || 'draft',
+      ticket_quantity: parseInt(event.ticket_quantity || '0', 10),
+      tickets_sold: parseInt(event.tickets_sold || '0', 10),
+      available_tickets: parseInt(event.available_tickets || '0', 10),
+      ticket_price: parseFloat(event.ticket_price || '0'),
+      ticket_types: (event.ticket_types || []).map(tt => ({
+        id: tt.id,
+        name: tt.name,
+        description: tt.description || '',
+        price: parseFloat(tt.price || '0'),
+        quantity: parseInt(tt.quantity || '0', 10),
+        available: parseInt(tt.available || '0', 10),
+        sold: parseInt(tt.sold || '0', 10),
+        sales_start_date: tt.sales_start_date ? new Date(tt.sales_start_date).toISOString() : null,
+        sales_end_date: tt.sales_end_date ? new Date(tt.sales_end_date).toISOString() : null,
+        is_default: !!tt.is_default
       })),
-      requestId
-    };
+      organizer_id: event.organizer_id,
+      created_at: event.created_at ? new Date(event.created_at).toISOString() : null,
+      updated_at: event.updated_at ? new Date(event.updated_at).toISOString() : null
+    }));
     
-    res.status(200).json(response);
+    res.status(200).json({
+      status: 'success',
+      results: response.length,
+      data: response,
+      requestId
+    });
       
   } catch (error) {
     console.error(`[${requestId}] Error in getUpcomingEvents controller:`, error);
