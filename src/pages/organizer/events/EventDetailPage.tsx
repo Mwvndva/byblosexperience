@@ -673,15 +673,7 @@ export default function EventDetailPage() {
         <TabsContent value="tickets" className="space-y-4">
           <Card>
             <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>Tickets</CardTitle>
-                <Button size="sm" asChild>
-                  <Link to={`/organizer/events/${id}/tickets/new`}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Ticket Type
-                  </Link>
-                </Button>
-              </div>
+              <CardTitle>Tickets</CardTitle>
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="types" className="w-full">
