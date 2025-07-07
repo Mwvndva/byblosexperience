@@ -26,7 +26,7 @@ router.use((req, res, next) => {
 // PUBLIC ROUTES - No authentication required
 // ==============================================
 
-// 1. First, define the static route for upcoming events
+// 1. First, define the static route for upcoming events with an exact match
 router.get('/public/upcoming', (req, res, next) => {
   const requestId = req.id || 'no-request-id';
   console.log(`[${requestId}] GET /public/upcoming`);
@@ -34,25 +34,19 @@ router.get('/public/upcoming', (req, res, next) => {
   next();
 }, getUpcomingEvents);
 
-// 2. Then, define the ticket types route with UUID validation
-router.get('/public/:eventId/ticket-types', (req, res, next) => {
+// 2. Then, define the ticket types route with a more specific pattern
+router.get('/public/:eventId(\\d+|\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12})/ticket-types', (req, res, next) => {
   const { eventId } = req.params;
   const requestId = req.id || 'no-request-id';
-  
-  // Convert to number if it's a numeric string, otherwise keep as is (for UUIDs)
-  req.params.eventId = isNaN(eventId) ? eventId : parseInt(eventId, 10);
   
   console.log(`[${requestId}] GET /public/${eventId}/ticket-types`);
   next();
 }, getEventTicketTypes);
 
-// 3. Then, define the specific event details route with UUID validation
-router.get('/public/:eventId', (req, res, next) => {
+// 3. Then, define the specific event details route with a more specific pattern
+router.get('/public/:eventId(\\d+|\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12})', (req, res, next) => {
   const { eventId } = req.params;
   const requestId = req.id || 'no-request-id';
-  
-  // Convert to number if it's a numeric string, otherwise keep as is (for UUIDs)
-  req.params.eventId = isNaN(eventId) ? eventId : parseInt(eventId, 10);
   
   console.log(`[${requestId}] GET /public/${eventId}`);
   next();
@@ -74,11 +68,22 @@ router.get('/public/*', (req, res) => {
     });
   }
   
-  // For non-numeric paths that aren't 'upcoming'
-  res.status(400).json({
+  // Check if it's an invalid event ID format
+  if (!/^\d+$/.test(path) && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(path)) {
+    return res.status(400).json({
+      status: 'error',
+      message: 'Invalid event ID format. Please provide a valid numeric or UUID event ID.',
+      requestId,
+      receivedPath: path
+    });
+  }
+  
+  // For all other cases
+  res.status(404).json({
     status: 'error',
-    message: 'Invalid endpoint. Please provide a valid numeric event ID or use /public/upcoming for upcoming events.',
-    requestId
+    message: 'Event not found',
+    requestId,
+    eventId: path
   });
 });
 
