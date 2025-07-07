@@ -1408,11 +1408,22 @@ async function formatAndSendEventResponse(event, eventId, requestId, res) {
 
 export const getPublicEvent = async (req, res) => {
   const requestId = req.id || 'no-request-id';
+  const { eventId } = req.params;
   
   console.log(`[${requestId}] === getPublicEvent controller called ===`);
   console.log(`[${requestId}] Request URL: ${req.originalUrl}`);
   console.log(`[${requestId}] Request params:`, req.params);
-  console.log(`[${requestId}] Event ID type: ${typeof eventId} value: ${eventId}`);
+  
+  if (!eventId) {
+    console.error(`[${requestId}] No event ID provided in request`);
+    return res.status(400).json({
+      status: 'error',
+      message: 'No event ID provided',
+      requestId
+    });
+  }
+  
+  console.log(`[${requestId}] Event ID:`, eventId);
   
   try {
     // Convert eventId to a number for consistency
