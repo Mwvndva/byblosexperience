@@ -1270,12 +1270,30 @@ export const getEventForBooking = async (req, res) => {
   }
   
   try {
-    // Use the same logic as getUpcomingEvents but filter by the specific event ID
-    console.log(`[${requestId}] Fetching event with ID: ${eventId} using getUpcomingEvents logic`);
+    // Convert eventId to a number if it's a string
+    const numericEventId = typeof eventId === 'string' ? parseInt(eventId, 10) : eventId;
     
-    // First, try to get the event using the same method as getUpcomingEvents
-    const events = await Event.getUpcomingEvents(50); // Get all upcoming events (up to 50)
-    const event = events.find(e => e.id == eventId); // Use loose equality to match string/number IDs
+    if (isNaN(numericEventId)) {
+      console.error(`[${requestId}] Invalid event ID format: ${eventId}`);
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid event ID format',
+        eventId,
+        requestId
+      });
+    }
+    
+    console.log(`[${requestId}] Fetching event with ID: ${numericEventId} (original: ${eventId})`);
+    
+    // First, try to get the event directly
+    let event = await Event.getPublicEvent(numericEventId);
+    
+    // If not found, try to get it from upcoming events as a fallback
+    if (!event) {
+      console.log(`[${requestId}] Event not found directly, checking upcoming events`);
+      const events = await Event.getUpcomingEvents(50);
+      event = events.find(e => e.id == eventId); // Use loose equality to match string/number IDs
+    }
     
     if (!event) {
       console.log(`[${requestId}] Event not found in upcoming events for ID: ${eventId}`);
