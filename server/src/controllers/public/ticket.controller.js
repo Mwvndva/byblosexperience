@@ -325,9 +325,22 @@ export const purchaseTickets = async (req, res, next) => {
           let qrCodeBuffer;
           
           // Generate secure validation URL with event ID and ticket number
-          const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+          const getBaseUrl = () => {
+            const url = process.env.FRONTEND_URL || 
+                       process.env.VITE_BASE_URL || 
+                       'http://localhost:3000';
+            // Ensure the base URL doesn't end with a slash
+            return url.endsWith('/') ? url.slice(0, -1) : url;
+          };
+          
+          const baseUrl = getBaseUrl();
           const ticketNumber = encodeURIComponent(tickets[0].ticket_number);
-          const eventId = tickets[0].event_id;
+          // Ensure we have a valid event ID
+          const eventId = tickets[0].event_id || req.body.eventId;
+          if (!eventId) {
+            console.error('Missing event ID for ticket validation URL');
+            throw new Error('Missing event ID for ticket validation');
+          }
           const validationUrl = `${baseUrl}/e/${eventId}/tickets/validate?ticket=${ticketNumber}&v=${Date.now()}`;
           
           try {

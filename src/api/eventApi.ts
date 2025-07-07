@@ -657,9 +657,19 @@ export const purchaseTickets = async (data: PurchaseTicketData, retryCount = 0):
       
       // Generate secure validation URL with event ID and ticket number
       const getValidationUrl = (ticketNumber: string) => {
-        const baseUrl = import.meta.env.VITE_BASE_URL || window.location.origin;
+        const baseUrl = import.meta.env.VITE_BASE_URL || 
+                       window.location.origin;
+        
+        // Ensure the base URL doesn't end with a slash
+        const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
         const encodedTicketNumber = encodeURIComponent(ticketNumber);
-        return `${baseUrl}/e/${event.id}/tickets/validate?ticket=${encodedTicketNumber}&v=${Date.now()}`;
+        // Ensure we have a valid event ID
+        const eventId = event?.id || data.eventId;
+        if (!eventId) {
+          console.error('Missing event ID for ticket validation URL');
+          throw new Error('Missing event ID for ticket validation');
+        }
+        return `${cleanBaseUrl}/e/${eventId}/tickets/validate?ticket=${encodedTicketNumber}&v=${Date.now()}`;
       };
 
       const ticketNumber = ticket.ticketNumber || ticket.ticket_number;
