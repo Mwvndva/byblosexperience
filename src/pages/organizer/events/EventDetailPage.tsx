@@ -455,19 +455,31 @@ export default function EventDetailPage() {
     );
   }
 
-  // Generate a clean URL for the event
-  const getEventUrl = (event: EventData, type: 'view' | 'purchase' = 'view') => {
-    if (!event) return '';
+  /**
+   * Generates a URL for the event
+   * @param event - The event data
+   * @param type - The type of URL to generate ('view' or 'purchase')
+   * @returns The generated URL
+   */
+  const getEventUrl = (event: EventData, type: 'view' | 'purchase' = 'view'): string => {
+    if (!event?.id) {
+      console.error('Invalid event data provided to getEventUrl');
+      return '';
+    }
     
     const baseUrl = window.location.origin;
     const eventId = event.id;
     
-    if (type === 'purchase') {
-      // Use the full URL with the event ID for the purchase page
-      return `${baseUrl}/e/${eventId}/purchase`;
+    // Ensure eventId is a valid string or number
+    if (!eventId) {
+      console.error('No event ID found in event data');
+      return '';
     }
-    // For view URLs, use just the event ID
-    return `${baseUrl}/e/${eventId}`;
+    
+    // Generate the appropriate URL based on the type
+    return type === 'purchase'
+      ? `${baseUrl}/e/${eventId}/purchase`
+      : `${baseUrl}/e/${eventId}`;
   };
 
   const safeEvent = event || defaultEvent;
@@ -842,41 +854,51 @@ export default function EventDetailPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
-                {/* Direct Purchase Link */}
-                <div className="space-y-2">
-                  <Label>Direct Purchase Link</Label>
-                  <div className="flex items-center space-x-2">
-                    <div className="flex-1 flex items-center px-3 py-2 border rounded-md bg-muted/50">
-                      <ShoppingCart className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
-                      <a 
-                        href={getEventUrl(safeEvent, 'purchase')} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:underline truncate"
+                {/* Direct Purchase Link - Only show if event exists and has an ID */}
+                {safeEvent?.id && (
+                  <div className="space-y-2">
+                    <Label>Direct Purchase Link</Label>
+                    <div className="flex items-center space-x-2">
+                      <div className="flex-1 flex items-center px-3 py-2 border rounded-md bg-muted/50">
+                        <ShoppingCart className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
+                        <a 
+                          href={getEventUrl(safeEvent, 'purchase')} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:underline truncate"
+                          aria-label={`Purchase tickets for ${safeEvent.title || 'this event'}`}
+                        >
+                          {getEventUrl(safeEvent, 'purchase')}
+                        </a>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const purchaseUrl = getEventUrl(safeEvent, 'purchase');
+                          if (purchaseUrl) {
+                            navigator.clipboard.writeText(purchaseUrl);
+                            toast({
+                              title: 'Link copied',
+                              description: 'Purchase link has been copied to your clipboard.',
+                            });
+                          } else {
+                            toast({
+                              variant: 'destructive',
+                              title: 'Error',
+                              description: 'Could not generate purchase link. Please try again.',
+                            });
+                          }
+                        }}
                       >
-                        {getEventUrl(safeEvent, 'purchase')}
-                      </a>
+                        Copy
+                      </Button>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        navigator.clipboard.writeText(getEventUrl(safeEvent, 'purchase'));
-                        toast({
-                          title: 'Link copied',
-                          description: 'Purchase link has been copied to your clipboard.',
-                        });
-                      }}
-                    >
-                      Copy
-                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      Share this link to take people directly to ticket purchase
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Share this link to take people directly to ticket purchase
-                  </p>
-                </div>
-
-
+                )}
               </div>
 
               <div className="pt-4 border-t">

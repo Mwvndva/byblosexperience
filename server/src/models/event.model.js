@@ -336,23 +336,26 @@ const Event = {
   },
   
   async getPublicEvent(id) {
-    // Validate that id is a number
-    if (typeof id !== 'number' || isNaN(id)) {
+    // Convert id to number if it's a string
+    const eventId = typeof id === 'string' ? parseInt(id, 10) : id;
+    
+    // Validate that id is a valid number
+    if (isNaN(eventId) || eventId <= 0) {
       console.error('Invalid event ID provided to getPublicEvent:', id);
       return null;
     }
 
-    console.log('Fetching event data for ID:', id);
+    console.log('Fetching event data for ID:', eventId);
     
     // First get the basic event data
     let event;
     try {
       const query = 'SELECT e.* FROM events e WHERE e.id = $1';
-      const eventResult = await pool.query(query, [id]);
+      const eventResult = await pool.query(query, [eventId]);
       event = eventResult.rows[0];
       
       if (!event) {
-        console.log('No event found with ID:', id);
+        console.log('No event found with ID:', eventId);
         return null;
       }
       

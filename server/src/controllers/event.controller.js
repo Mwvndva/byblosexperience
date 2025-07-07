@@ -1270,20 +1270,19 @@ export const getEventForBooking = async (req, res) => {
   }
   
   try {
-    // Convert eventId to a number if it's a string
-    const numericEventId = typeof eventId === 'string' ? parseInt(eventId, 10) : eventId;
+    // Convert eventId to a number and validate it
+    const numericEventId = parseInt(eventId, 10);
     
-    if (isNaN(numericEventId)) {
+    if (isNaN(numericEventId) || numericEventId <= 0) {
       console.error(`[${requestId}] Invalid event ID format: ${eventId}`);
       return res.status(400).json({
         status: 'error',
-        message: 'Invalid event ID format',
-        eventId,
+        message: 'Invalid event ID format. Please provide a valid numeric ID.',
         requestId
       });
     }
     
-    console.log(`[${requestId}] Fetching event with ID: ${numericEventId} (original: ${eventId})`);
+    console.log(`[${requestId}] Fetching event with ID: ${numericEventId}`);
     
     // Try to get the event directly from the database
     let event = await Event.getPublicEvent(numericEventId);
@@ -1291,8 +1290,22 @@ export const getEventForBooking = async (req, res) => {
     // If not found, try to get it from upcoming events as a fallback
     if (!event) {
       console.log(`[${requestId}] Event not found directly, checking upcoming events`);
-      const events = await Event.getUpcomingEvents(50);
-      event = events.find(e => e.id == eventId); // Use loose equality to match string/number IDs
+      try {
+        const events = await Event.getUpcomingEvents(50);
+        event = events.find(e => e.id === numericEventId);
+        
+        if (!event) {
+          console.log(`[${requestId}] Event not found in upcoming events`);
+          return res.status(404).json({
+            status: 'error',
+            message: 'Event not found',
+            requestId
+          });
+        }
+      } catch (error) {
+        console.error(`[${requestId}] Error fetching upcoming events:`, error);
+        throw error;
+      }
     }
     
     if (!event) {
@@ -1399,34 +1412,27 @@ export const getPublicEvent = async (req, res) => {
   console.log(`[${requestId}] === getPublicEvent controller called ===`);
   console.log(`[${requestId}] Request URL: ${req.originalUrl}`);
   console.log(`[${requestId}] Request params:`, req.params);
-  
-  const { eventId } = req.params;
-  
-  // Validate event ID
-  if (!eventId) {
-    const errorMsg = `No event ID provided to getPublicEvent`;
-    console.error(`[${requestId}] ${errorMsg}`);
-    return res.status(400).json({
-      status: 'error',
-      message: 'No event ID provided',
-      requestId
-    });
-  }
-  
-  // Log the event ID type for debugging
-  console.log(`[${requestId}] Event ID type:`, typeof eventId, 'value:', eventId);
+  console.log(`[${requestId}] Event ID type: ${typeof eventId} value: ${eventId}`);
   
   try {
-    console.log(`[${requestId}] Fetching public event with ID: ${eventId}`);
-    const event = await Event.getPublicEvent(eventId);
+    // Convert eventId to a number for consistency
+    const numericEventId = parseInt(eventId, 10);
+    
+    if (isNaN(numericEventId) || numericEventId <= 0) {
+      return res.status(400).json({ 
+        status: 'error', 
+        message: 'Invalid event ID format. Please provide a valid numeric ID.' 
+      });
+    }
+    
+    console.log(`[${requestId}] Fetching public event with ID: ${numericEventId}`);
+    const event = await Event.getPublicEvent(numericEventId);
     
     if (!event) {
-      console.log(`[${requestId}] Event not found or not published for ID: ${eventId}`);
-      return res.status(404).json({
-        status: 'error',
-        message: 'Event not found or not published',
-        eventId: eventId,
-        requestId
+      console.log(`[${requestId}] Event not found for ID: ${numericEventId}`);
+      return res.status(404).json({ 
+        status: 'error', 
+        message: 'Event not found' 
       });
     }
     
