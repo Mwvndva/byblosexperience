@@ -1248,6 +1248,105 @@ export const getEventTicketTypes = async (req, res) => {
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  */
+/**
+ * Get event details for booking page
+ * This function provides detailed event information including ticket types and availability
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+export const getEventForBooking = async (req, res) => {
+  const requestId = req.id || 'no-request-id';
+  const { eventId } = req.params;
+  
+  console.log(`[${requestId}] === getEventForBooking controller called ===`);
+  console.log(`[${requestId}] Request URL: ${req.originalUrl}`);
+  console.log(`[${requestId}] Event ID:`, eventId);
+  
+  // Validate event ID
+  if (!eventId) {
+    const errorMsg = 'No event ID provided to getEventForBooking';
+    console.error(`[${requestId}] ${errorMsg}`);
+    return res.status(400).json({
+      status: 'error',
+      message: 'No event ID provided',
+      requestId
+    });
+  }
+  
+  try {
+    // First, get the basic event info
+    console.log(`[${requestId}] Fetching event with ID: ${eventId}`);
+    const event = await Event.getPublicEvent(eventId);
+    
+    if (!event) {
+      console.log(`[${requestId}] Event not found or not published for ID: ${eventId}`);
+      return res.status(404).json({
+        status: 'error',
+        message: 'Event not found or not published',
+        eventId,
+        requestId
+      });
+    }
+    
+    // Get ticket types for the event
+    console.log(`[${requestId}] Fetching ticket types for event ID: ${eventId}`);
+    const ticketTypes = await Event.getEventTicketTypes(eventId);
+    
+    // Format the event data for the booking page
+    const formattedEvent = {
+      id: event.id || eventId,
+      name: event.name || 'Unnamed Event',
+      description: event.description || '',
+      image_url: event.image_url || '/images/default-event.jpg',
+      location: event.location || 'Location not specified',
+      start_date: event.start_date ? new Date(event.start_date).toISOString() : null,
+      end_date: event.end_date ? new Date(event.end_date).toISOString() : null,
+      status: event.status || 'draft',
+      ticket_quantity: parseInt(event.ticket_quantity || '0', 10),
+      tickets_sold: parseInt(event.tickets_sold || '0', 10),
+      available_tickets: parseInt(event.available_tickets || '0', 10),
+      ticket_price: parseFloat(event.ticket_price || '0'),
+      ticket_types: (ticketTypes || []).map(tt => ({
+        id: tt.id,
+        name: tt.name,
+        description: tt.description || '',
+        price: parseFloat(tt.price || '0'),
+        quantity: parseInt(tt.quantity || '0', 10),
+        available: parseInt(tt.available || '0', 10),
+        sold: parseInt(tt.sold || '0', 10),
+        sales_start_date: tt.sales_start_date ? new Date(tt.sales_start_date).toISOString() : null,
+        sales_end_date: tt.sales_end_date ? new Date(tt.sales_end_date).toISOString() : null,
+        is_default: !!tt.is_default,
+        min_per_order: parseInt(tt.min_per_order || '1', 10),
+        max_per_order: parseInt(tt.max_per_order || '10', 10)
+      })),
+      organizer_id: event.organizer_id,
+      created_at: event.created_at ? new Date(event.created_at).toISOString() : null,
+      updated_at: event.updated_at ? new Date(event.updated_at).toISOString() : null
+    };
+    
+    console.log(`[${requestId}] Successfully retrieved event for booking: ${formattedEvent.name} (ID: ${formattedEvent.id})`);
+    
+    // Return the formatted event data
+    return res.status(200).json(formattedEvent);
+    
+  } catch (error) {
+    console.error(`[${requestId}] Error in getEventForBooking:`, {
+      message: error.message,
+      stack: error.stack,
+      eventId,
+      originalUrl: req.originalUrl
+    });
+    
+    return res.status(500).json({
+      status: 'error',
+      message: 'An error occurred while fetching event for booking',
+      requestId,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 export const getPublicEvent = async (req, res) => {
   const requestId = req.id || 'no-request-id';
   

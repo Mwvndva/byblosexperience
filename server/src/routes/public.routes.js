@@ -17,6 +17,7 @@ router.get('/sellers/:id/public', publicController.getSellerPublicInfo);
 router.get('/events/upcoming', eventController.getUpcomingEvents);
 router.get('/events/public/upcoming', eventController.getUpcomingEvents); // Alias for compatibility
 router.get('/events/public/:eventId', eventController.getPublicEvent);
+router.get('/events/public/:eventId/booking', eventController.getEventForBooking); // For booking page with detailed info
 router.get('/events/public/:eventId/ticket-types', eventController.getEventTicketTypes);
 
 // Public ticket routes
