@@ -393,7 +393,7 @@ const Event = {
           SELECT 
             ticket_type_id,
             COUNT(*) as total_created,
-            SUM(CASE WHEN status = 'sold' THEN 1 ELSE 0 END) as total_sold
+            SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) as total_sold
           FROM tickets
           WHERE event_id = $1
           GROUP BY ticket_type_id
