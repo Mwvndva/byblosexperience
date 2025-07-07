@@ -463,10 +463,10 @@ export default function EventDetailPage() {
     const eventId = event.id;
     
     if (type === 'purchase') {
-      // Return just the event ID without the slug for cleaner URLs
+      // Use the full URL with the event ID for the purchase page
       return `${baseUrl}/e/${eventId}/purchase`;
     }
-    // For view URLs, also use just the event ID
+    // For view URLs, use just the event ID
     return `${baseUrl}/e/${eventId}`;
   };
 
