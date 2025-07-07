@@ -905,6 +905,68 @@ export const getUpcomingEvents = async (req, res) => {
   }
 };
 
+export const updateEventStatus = async (req, res) => {
+  const requestId = req.id || 'no-request-id';
+  const { id } = req.params;
+  const { status } = req.body;
+  
+  console.log(`[${requestId}] === updateEventStatus controller called ===`);
+  console.log(`[${requestId}] Updating event ${id} status to:`, status);
+  
+  // Validate status
+  const validStatuses = ['draft', 'published', 'cancelled'];
+  if (!status || !validStatuses.includes(status)) {
+    return res.status(400).json({
+      status: 'error',
+      message: 'Invalid status. Must be one of: ' + validStatuses.join(', '),
+      requestId
+    });
+  }
+  
+  try {
+    // Check if event exists and belongs to the organizer
+    const event = await Event.findById(id);
+    if (!event) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Event not found',
+        requestId
+      });
+    }
+    
+    // Verify organizer ownership
+    if (event.organizer_id !== req.user.id) {
+      return res.status(403).json({
+        status: 'error',
+        message: 'Not authorized to update this event',
+        requestId
+      });
+    }
+    
+    // Update the status
+    const updatedEvent = await Event.updateStatus(id, status);
+    
+    console.log(`[${requestId}] Successfully updated event ${id} status to ${status}`);
+    
+    res.status(200).json({
+      status: 'success',
+      data: {
+        event: updatedEvent
+      },
+      requestId
+    });
+    
+  } catch (error) {
+    console.error(`[${requestId}] Error updating event status:`, error);
+    res.status(500).json({
+      status: 'error',
+      message: 'An error occurred while updating the event status',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      requestId
+    });
+  }
+};
+
 export const getDashboardEvents = async (req, res) => {
   try {
     const { 
