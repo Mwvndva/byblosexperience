@@ -1430,9 +1430,11 @@ export const getPublicEvent = async (req, res) => {
     const numericEventId = parseInt(eventId, 10);
     
     if (isNaN(numericEventId) || numericEventId <= 0) {
-      return res.status(400).json({ 
-        status: 'error', 
-        message: 'Invalid event ID format. Please provide a valid numeric ID.' 
+      console.error(`[${requestId}] Invalid event ID format: ${eventId}`);
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid event ID format. Please provide a valid numeric ID.',
+        requestId
       });
     }
     
@@ -1441,22 +1443,21 @@ export const getPublicEvent = async (req, res) => {
     
     if (!event) {
       console.log(`[${requestId}] Event not found for ID: ${numericEventId}`);
-      return res.status(404).json({ 
-        status: 'error', 
-        message: 'Event not found' 
+      return res.status(404).json({
+        status: 'error',
+        message: 'Event not found',
+        requestId
       });
     }
     
-    // Ensure required fields exist with proper defaults
+    // Format the response
     const formattedEvent = {
-      ...event,
-      id: event.id || eventId, // Use the original event ID if available, otherwise use the one from params
+      id: event.id,
       name: event.name || 'Unnamed Event',
       description: event.description || '',
-      image_url: event.image_url || '/images/default-event.jpg',
       location: event.location || 'Location not specified',
-      start_date: event.start_date || null,
-      end_date: event.end_date || null,
+      start_date: event.start_date ? new Date(event.start_date).toISOString() : null,
+      end_date: event.end_date ? new Date(event.end_date).toISOString() : null,
       status: event.status || 'draft',
       ticket_quantity: parseInt(event.ticket_quantity || '0', 10),
       available_tickets: parseInt(event.available_tickets || event.ticket_quantity || '0', 10),
