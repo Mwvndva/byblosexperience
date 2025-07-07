@@ -342,18 +342,28 @@ const Event = {
       return null;
     }
 
-    console.log('Fetching public event data for ID:', id);
+    console.log('Fetching event data for ID:', id);
     
     // First get the basic event data
     let event;
     try {
-      const eventResult = await pool.query(
-        `SELECT e.* FROM events e WHERE e.id = $1 AND e.status = 'published'`,
-        [id]
-      );
+      const query = 'SELECT e.* FROM events e WHERE e.id = $1';
+      const eventResult = await pool.query(query, [id]);
       event = eventResult.rows[0];
+      
+      if (!event) {
+        console.log('No event found with ID:', id);
+        return null;
+      }
+      
+      console.log('Found event:', { id: event.id, name: event.name, status: event.status });
     } catch (error) {
-      console.error('Database error in getPublicEvent:', error);
+      console.error('Database error in getPublicEvent:', {
+        message: error.message,
+        stack: error.stack,
+        id,
+        idType: typeof id
+      });
       throw error; // Re-throw to be handled by the controller
     }
     

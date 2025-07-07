@@ -1285,7 +1285,7 @@ export const getEventForBooking = async (req, res) => {
     
     console.log(`[${requestId}] Fetching event with ID: ${numericEventId} (original: ${eventId})`);
     
-    // First, try to get the event directly
+    // Try to get the event directly from the database
     let event = await Event.getPublicEvent(numericEventId);
     
     // If not found, try to get it from upcoming events as a fallback
