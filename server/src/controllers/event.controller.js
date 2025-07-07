@@ -576,6 +576,14 @@ export const getPublicEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
     
+    // Validate eventId is a number
+    if (!/^\d+$/.test(eventId)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid event ID. Must be a number.'
+      });
+    }
+    
     // Get event details with organizer info
     const eventResult = await client.query(
       `SELECT e.*, 

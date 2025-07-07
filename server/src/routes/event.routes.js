@@ -34,19 +34,27 @@ router.get('/public/upcoming', (req, res, next) => {
   next();
 }, getUpcomingEvents);
 
-// 2. Get ticket types for a specific event (public)
+// 2. Get ticket types for a specific event (public) - must come before the general event route
 router.get('/public/:eventId(\\d+)/ticket-types', (req, res, next) => {
   const requestId = req.id || 'no-request-id';
   console.log(`[${requestId}] GET /public/${req.params.eventId}/ticket-types`);
   next();
 }, getEventTicketTypes);
 
-// 3. Get public event details (public)
+// 3. Get public event details (public) - must be after all other specific routes
 router.get('/public/:eventId(\\d+)', (req, res, next) => {
   const requestId = req.id || 'no-request-id';
   console.log(`[${requestId}] GET /public/${req.params.eventId}`);
   next();
 }, getPublicEvent);
+
+// 4. Catch any invalid public routes that aren't numbers
+router.get('/public/:invalidId', (req, res) => {
+  res.status(400).json({
+    status: 'error',
+    message: 'Invalid event ID. Must be a number.'
+  });
+});
 
 // 4. Catch-all for invalid public event IDs
 router.get('/public/:eventId([^0-9]+)', (req, res) => {
