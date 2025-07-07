@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Calendar, Ticket, Users, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Calendar, Ticket, Users, Settings, LogOut, FileText } from 'lucide-react';
 import { useOrganizerAuth } from '@/contexts/OrganizerAuthContext';
 
 const navigation = [
@@ -8,6 +8,7 @@ const navigation = [
   { name: 'Events', href: '/organizer/events', icon: Calendar },
   { name: 'Tickets', href: '/organizer/tickets', icon: Ticket },
   { name: 'Settings', href: '/organizer/settings', icon: Settings },
+  { name: 'Terms & Conditions', href: '/organizer/terms', icon: FileText },
 ];
 
 export function Sidebar() {
