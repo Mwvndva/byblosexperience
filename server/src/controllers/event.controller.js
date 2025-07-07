@@ -1243,6 +1243,11 @@ export const getEventTicketTypes = async (req, res) => {
   }
 };
 
+/**
+ * Get public event details by ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
 export const getPublicEvent = async (req, res) => {
   const requestId = req.id || 'no-request-id';
   
@@ -1266,40 +1271,37 @@ export const getPublicEvent = async (req, res) => {
   // Log the event ID type for debugging
   console.log(`[${requestId}] Event ID type:`, typeof eventId, 'value:', eventId);
   
-  // Use the event ID as is (it's already validated by the route)
-  const eventIdToUse = eventId;
-  
   try {
-    console.log(`[${requestId}] Fetching public event with ID: ${eventIdToUse}`);
-    const event = await Event.getPublicEvent(eventIdToUse);
+    console.log(`[${requestId}] Fetching public event with ID: ${eventId}`);
+    const event = await Event.getPublicEvent(eventId);
     
     if (!event) {
-      console.log(`[${requestId}] Event not found or not published for ID: ${eventIdToUse}`);
+      console.log(`[${requestId}] Event not found or not published for ID: ${eventId}`);
       return res.status(404).json({
         status: 'error',
         message: 'Event not found or not published',
-        eventId: eventIdToUse,
+        eventId: eventId,
         requestId
       });
     }
     
-    // Ensure required fields exist
+    // Ensure required fields exist with proper defaults
     const formattedEvent = {
       ...event,
-      id: event.id || numericEventId,
+      id: event.id || eventId, // Use the original event ID if available, otherwise use the one from params
       name: event.name || 'Unnamed Event',
       description: event.description || '',
       image_url: event.image_url || '/images/default-event.jpg',
       location: event.location || 'Location not specified',
-      start_date: event.start_date,
-      end_date: event.end_date,
+      start_date: event.start_date || null,
+      end_date: event.end_date || null,
       status: event.status || 'draft',
       ticket_quantity: parseInt(event.ticket_quantity || '0', 10),
       available_tickets: parseInt(event.available_tickets || event.ticket_quantity || '0', 10),
       ticket_price: parseFloat(event.ticket_price || '0'),
-      created_at: event.created_at,
-      updated_at: event.updated_at,
-      organizer_id: event.organizer_id
+      created_at: event.created_at || new Date().toISOString(),
+      updated_at: event.updated_at || new Date().toISOString(),
+      organizer_id: event.organizer_id || null
     };
     
     console.log(`[${requestId}] Successfully retrieved event: ${formattedEvent.name} (ID: ${formattedEvent.id})`);
@@ -1309,7 +1311,7 @@ export const getPublicEvent = async (req, res) => {
     console.error(`[${requestId}] Error in getPublicEvent:`, {
       message: error.message,
       stack: error.stack,
-      eventId: numericEventId,
+      eventId: eventId,
       originalUrl: req.originalUrl
     });
     
