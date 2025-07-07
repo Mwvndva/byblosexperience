@@ -346,7 +346,7 @@ export const purchaseTickets = async (req, res, next) => {
             
             // Add QR code and validation URL to template data
             templateData.qrCode = qrCodeDataUrl;
-            templateData.qrCodeData = qrCodeData;
+            templateData.qrCodeData = validationUrl; // Store the validation URL as QR code data
             templateData.validationUrl = validationUrl;
             
           } catch (qrError) {
