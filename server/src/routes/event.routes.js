@@ -26,7 +26,7 @@ router.use((req, res, next) => {
 // PUBLIC ROUTES - No authentication required
 // ==============================================
 
-// 1. Get upcoming events (public) - must be before any dynamic routes
+// 1. First, define the static route for upcoming events
 router.get('/public/upcoming', (req, res, next) => {
   const requestId = req.id || 'no-request-id';
   console.log(`[${requestId}] GET /public/upcoming`);
@@ -34,45 +34,25 @@ router.get('/public/upcoming', (req, res, next) => {
   next();
 }, getUpcomingEvents);
 
-// 2. Get ticket types for a specific event (public)
-router.get('/public/:eventId/ticket-types', (req, res, next) => {
+// 2. Then, define the ticket types route with numeric validation
+router.get(['/public/:eventId(\\d+)/ticket-types', '/public/0/ticket-types'], (req, res, next) => {
   const { eventId } = req.params;
   const requestId = req.id || 'no-request-id';
-  
-  // Validate numeric event ID
-  if (!/^\d+$/.test(eventId)) {
-    console.log(`[${requestId}] Invalid event ID format: ${eventId}`);
-    return res.status(400).json({
-      status: 'error',
-      message: 'Invalid event ID format. Event ID must be numeric.',
-      requestId
-    });
-  }
   
   console.log(`[${requestId}] GET /public/${eventId}/ticket-types`);
   next();
 }, getEventTicketTypes);
 
-// 3. Get public event details (public)
-router.get('/public/:eventId', (req, res, next) => {
+// 3. Then, define the specific event details route with numeric validation
+router.get(['/public/:eventId(\\d+)', '/public/0'], (req, res, next) => {
   const { eventId } = req.params;
   const requestId = req.id || 'no-request-id';
-  
-  // Validate numeric event ID
-  if (!/^\d+$/.test(eventId)) {
-    console.log(`[${requestId}] Invalid event ID format: ${eventId}`);
-    return res.status(400).json({
-      status: 'error',
-      message: 'Invalid event ID format. Event ID must be numeric.',
-      requestId
-    });
-  }
   
   console.log(`[${requestId}] GET /public/${eventId}`);
   next();
 }, getPublicEvent);
 
-// 4. Catch-all for invalid public routes
+// 4. Finally, catch-all for invalid public routes
 router.get('/public/*', (req, res) => {
   const requestId = req.id || 'no-request-id';
   const path = req.path.replace(/^\/public\//, '');
@@ -81,16 +61,14 @@ router.get('/public/*', (req, res) => {
   
   // Special case for /public/upcoming with incorrect method
   if (path === 'upcoming') {
-    return res.status(req.method === 'GET' ? 404 : 405).json({
+    return res.status(405).json({
       status: 'error',
-      message: req.method === 'GET' 
-        ? 'No events found. The upcoming events list might be empty.' 
-        : 'Method not allowed. Use GET /api/events/public/upcoming',
+      message: 'Method not allowed. Use GET /api/events/public/upcoming',
       requestId
     });
   }
   
-  // For non-numeric paths
+  // For non-numeric paths that aren't 'upcoming'
   res.status(400).json({
     status: 'error',
     message: 'Invalid endpoint. Please provide a valid numeric event ID or use /public/upcoming for upcoming events.',
