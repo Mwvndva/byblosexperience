@@ -483,14 +483,21 @@ export const getUpcomingEvents = async (req, res) => {
   const client = await pool.connect();
   
   try {
-    const { page = 1, limit = 10, search = '', category } = req.query;
+    // Parse and validate query parameters
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
+    const search = (req.query.search || '').trim();
+    const category = req.query.category;
     const offset = (page - 1) * limit;
     
+    // Base query to get event details with organizer info
     let query = `
-      SELECT e.*, 
-             o.name as organizer_name,
-             o.image_url as organizer_image,
-             COUNT(DISTINCT t.id) as ticket_count
+      SELECT 
+        e.id, e.name, e.description, e.image_url, e.location,
+        e.ticket_quantity, e.ticket_price, e.start_date, e.end_date,
+        o.full_name as organizer_name,
+        o.image_url as organizer_image,
+        COUNT(DISTINCT t.id) as ticket_count
       FROM events e
       JOIN organizers o ON e.organizer_id = o.id
       LEFT JOIN tickets t ON e.id = t.event_id
@@ -501,50 +508,62 @@ export const getUpcomingEvents = async (req, res) => {
     const queryParams = [];
     let paramCount = 1;
     
+    // Add search condition if provided
     if (search) {
       query += ` AND (e.name ILIKE $${paramCount} OR e.description ILIKE $${paramCount})`;
       queryParams.push(`%${search}%`);
       paramCount++;
     }
     
+    // Add category filter if provided
     if (category) {
       query += ` AND e.category = $${paramCount}`;
       queryParams.push(category);
       paramCount++;
     }
     
-    // Group by and order
+    // Group by and order with all selected non-aggregated columns
     query += `
-      GROUP BY e.id, o.id
+      GROUP BY 
+        e.id, e.name, e.description, e.image_url, e.location,
+        e.ticket_quantity, e.ticket_price, e.start_date, e.end_date,
+        o.id, o.full_name, o.image_url
       ORDER BY e.start_date ASC
       LIMIT $${paramCount} OFFSET $${paramCount + 1}
     `;
     
     queryParams.push(limit, offset);
     
+    // Execute the main query
     const result = await client.query(query, queryParams);
     
-    // Get total count for pagination
+    // Build count query
     let countQuery = `
-      SELECT COUNT(DISTINCT e.id)
-      FROM events e
-      WHERE e.status = 'published'
-      AND e.start_date > NOW()
+      SELECT COUNT(*)
+      FROM (
+        SELECT DISTINCT e.id
+        FROM events e
+        WHERE e.status = 'published'
+        AND e.start_date > NOW()
     `;
     
     const countParams = [];
-    paramCount = 1;
+    let countParamCount = 1;
     
+    // Add search condition to count query if provided
     if (search) {
-      countQuery += ` AND (e.name ILIKE $${paramCount} OR e.description ILIKE $${paramCount})`;
+      countQuery += ` AND (e.name ILIKE $${countParamCount} OR e.description ILIKE $${countParamCount})`;
       countParams.push(`%${search}%`);
-      paramCount++;
+      countParamCount++;
     }
     
+    // Add category filter to count query if provided
     if (category) {
-      countQuery += ` AND e.category = $${paramCount}`;
+      countQuery += ` AND e.category = $${countParamCount}`;
       countParams.push(category);
     }
+    
+    countQuery += `) as subquery`;
     
     const countResult = await client.query(countQuery, countParams);
     const total = parseInt(countResult.rows[0].count);
