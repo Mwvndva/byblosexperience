@@ -55,6 +55,9 @@ interface EventBookingPageProps {
 
 export default function EventBookingPage({ eventId: propEventId }: EventBookingPageProps = {}) {
   const params = useParams<{ eventId: string }>();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  
   // Use propEventId if provided, otherwise fall back to URL params
   const eventId = propEventId || params.eventId;
   
@@ -69,8 +72,6 @@ export default function EventBookingPage({ eventId: propEventId }: EventBookingP
       </div>
     );
   }
-  const navigate = useNavigate();
-  const { toast } = useToast();
   
   const [event, setEvent] = useState<Event | null>(null);
   const [isLoading, setIsLoading] = useState(false);

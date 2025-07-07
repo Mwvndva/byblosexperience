@@ -1406,6 +1406,13 @@ async function formatAndSendEventResponse(event, eventId, requestId, res) {
   }
 };
 
+/**
+ * Get public event details by ID
+ * @route GET /api/events/public/:eventId
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} Event details or error message
+ */
 export const getPublicEvent = async (req, res) => {
   const requestId = req.id || 'no-request-id';
   const { eventId } = req.params;
@@ -1414,39 +1421,47 @@ export const getPublicEvent = async (req, res) => {
   console.log(`[${requestId}] Request URL: ${req.originalUrl}`);
   console.log(`[${requestId}] Request params:`, req.params);
   
+  // Validate eventId is provided
   if (!eventId) {
     console.error(`[${requestId}] No event ID provided in request`);
     return res.status(400).json({
       status: 'error',
       message: 'No event ID provided',
-      requestId
+      requestId,
+      timestamp: new Date().toISOString()
     });
   }
   
-  console.log(`[${requestId}] Event ID:`, eventId);
+  console.log(`[${requestId}] Processing request for event ID:`, eventId);
   
   try {
     // Convert eventId to a number for consistency
     const numericEventId = parseInt(eventId, 10);
     
+    // Validate numeric ID
     if (isNaN(numericEventId) || numericEventId <= 0) {
       console.error(`[${requestId}] Invalid event ID format: ${eventId}`);
       return res.status(400).json({
         status: 'error',
         message: 'Invalid event ID format. Please provide a valid numeric ID.',
-        requestId
+        requestId,
+        timestamp: new Date().toISOString()
       });
     }
     
     console.log(`[${requestId}] Fetching public event with ID: ${numericEventId}`);
+    
+    // Get the event from the database
     const event = await Event.getPublicEvent(numericEventId);
     
+    // Check if event exists
     if (!event) {
       console.log(`[${requestId}] Event not found for ID: ${numericEventId}`);
       return res.status(404).json({
         status: 'error',
         message: 'Event not found',
-        requestId
+        requestId,
+        timestamp: new Date().toISOString()
       });
     }
     
@@ -1455,6 +1470,7 @@ export const getPublicEvent = async (req, res) => {
       id: event.id,
       name: event.name || 'Unnamed Event',
       description: event.description || '',
+      image_url: event.image_url || null,
       location: event.location || 'Location not specified',
       start_date: event.start_date ? new Date(event.start_date).toISOString() : null,
       end_date: event.end_date ? new Date(event.end_date).toISOString() : null,
@@ -1462,13 +1478,22 @@ export const getPublicEvent = async (req, res) => {
       ticket_quantity: parseInt(event.ticket_quantity || '0', 10),
       available_tickets: parseInt(event.available_tickets || event.ticket_quantity || '0', 10),
       ticket_price: parseFloat(event.ticket_price || '0'),
-      created_at: event.created_at || new Date().toISOString(),
-      updated_at: event.updated_at || new Date().toISOString(),
-      organizer_id: event.organizer_id || null
+      created_at: event.created_at ? new Date(event.created_at).toISOString() : new Date().toISOString(),
+      updated_at: event.updated_at ? new Date(event.updated_at).toISOString() : new Date().toISOString(),
+      organizer_id: event.organizer_id || null,
+      // Include ticket types if available
+      ticket_types: event.ticket_types || []
     };
     
     console.log(`[${requestId}] Successfully retrieved event: ${formattedEvent.name} (ID: ${formattedEvent.id})`);
-    return res.status(200).json(formattedEvent);
+    
+    // Return the formatted event
+    return res.status(200).json({
+      status: 'success',
+      data: formattedEvent,
+      requestId,
+      timestamp: new Date().toISOString()
+    });
     
   } catch (error) {
     console.error(`[${requestId}] Error in getPublicEvent:`, {
@@ -1478,11 +1503,16 @@ export const getPublicEvent = async (req, res) => {
       originalUrl: req.originalUrl
     });
     
+    // Return error response
     return res.status(500).json({
       status: 'error',
       message: 'An error occurred while fetching the event',
       requestId,
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      timestamp: new Date().toISOString(),
+      error: process.env.NODE_ENV === 'development' ? {
+        message: error.message,
+        stack: error.stack
+      } : undefined
     });
   }
 };
