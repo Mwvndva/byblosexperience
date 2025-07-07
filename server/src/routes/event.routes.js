@@ -34,17 +34,41 @@ router.get('/public/upcoming', (req, res, next) => {
   next();
 }, getUpcomingEvents);
 
-// 2. Get ticket types for a specific event (public) - must come before the general event route
-router.get('/public/:eventId(\\d+)/ticket-types', (req, res, next) => {
+// 2. Get ticket types for a specific event (public)
+router.get('/public/:eventId/ticket-types', (req, res, next) => {
+  const { eventId } = req.params;
   const requestId = req.id || 'no-request-id';
-  console.log(`[${requestId}] GET /public/${req.params.eventId}/ticket-types`);
+  
+  // Validate numeric event ID
+  if (!/^\d+$/.test(eventId)) {
+    console.log(`[${requestId}] Invalid event ID format: ${eventId}`);
+    return res.status(400).json({
+      status: 'error',
+      message: 'Invalid event ID format. Event ID must be numeric.',
+      requestId
+    });
+  }
+  
+  console.log(`[${requestId}] GET /public/${eventId}/ticket-types`);
   next();
 }, getEventTicketTypes);
 
-// 3. Get public event details (public) - must be after all other specific routes
-router.get('/public/:eventId(\\d+)', (req, res, next) => {
+// 3. Get public event details (public)
+router.get('/public/:eventId', (req, res, next) => {
+  const { eventId } = req.params;
   const requestId = req.id || 'no-request-id';
-  console.log(`[${requestId}] GET /public/${req.params.eventId}`);
+  
+  // Validate numeric event ID
+  if (!/^\d+$/.test(eventId)) {
+    console.log(`[${requestId}] Invalid event ID format: ${eventId}`);
+    return res.status(400).json({
+      status: 'error',
+      message: 'Invalid event ID format. Event ID must be numeric.',
+      requestId
+    });
+  }
+  
+  console.log(`[${requestId}] GET /public/${eventId}`);
   next();
 }, getPublicEvent);
 
@@ -56,19 +80,12 @@ router.get('/public/*', (req, res) => {
   console.log(`[${requestId}] Invalid public endpoint: /public/${path}`);
   
   // Special case for /public/upcoming with incorrect method
-  if (path === 'upcoming' && req.method !== 'GET') {
-    return res.status(405).json({
+  if (path === 'upcoming') {
+    return res.status(req.method === 'GET' ? 404 : 405).json({
       status: 'error',
-      message: 'Method not allowed. Use GET /api/events/public/upcoming',
-      requestId
-    });
-  }
-  
-  // Check if it's a numeric ID but not a valid endpoint
-  if (/^\d+$/.test(path)) {
-    return res.status(404).json({
-      status: 'error',
-      message: 'Event not found',
+      message: req.method === 'GET' 
+        ? 'No events found. The upcoming events list might be empty.' 
+        : 'Method not allowed. Use GET /api/events/public/upcoming',
       requestId
     });
   }
@@ -76,7 +93,7 @@ router.get('/public/*', (req, res) => {
   // For non-numeric paths
   res.status(400).json({
     status: 'error',
-    message: 'Invalid endpoint. Did you mean /public/upcoming?',
+    message: 'Invalid endpoint. Please provide a valid numeric event ID or use /public/upcoming for upcoming events.',
     requestId
   });
 });
