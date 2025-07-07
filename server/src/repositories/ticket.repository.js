@@ -328,13 +328,31 @@ export default class TicketRepository {
     try {
       console.log(`Marking ticket ${ticketId} as scanned...`);
       
+      // First, get the current ticket to check its status
+      const getTicketSql = 'SELECT * FROM tickets WHERE id = $1';
+      const ticketResult = await query(getTicketSql, [ticketId]);
+      
+      if (ticketResult.rows.length === 0) {
+        console.error(`Ticket not found with ID: ${ticketId}`);
+        throw new Error('Ticket not found');
+      }
+      
+      const ticket = ticketResult.rows[0];
+      
+      // Only update if the ticket hasn't been scanned yet
+      if (ticket.scanned) {
+        console.log(`Ticket ${ticketId} was already scanned at ${ticket.scanned_at}`);
+        return ticket;
+      }
+      
+      // Update the ticket with scanned flag and timestamp
       const sql = `
         UPDATE tickets 
         SET 
           scanned = true,
           scanned_at = NOW(),
           updated_at = NOW(),
-          status = 'scanned'  -- Explicitly set status to 'scanned'
+          status = 'paid'  -- Ensure status is set to a valid enum value
         WHERE id = $1
         RETURNING *
       `;
@@ -342,8 +360,7 @@ export default class TicketRepository {
       const result = await query(sql, [ticketId]);
       
       if (result.rows.length === 0) {
-        console.error(`Ticket not found with ID: ${ticketId}`);
-        throw new Error('Ticket not found');
+        throw new Error('Failed to update ticket status');
       }
       
       console.log(`Successfully marked ticket ${ticketId} as scanned`);
