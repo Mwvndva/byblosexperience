@@ -149,10 +149,7 @@ export function SellerLayout({ children }: SellerLayoutProps) {
           {/* Header */}
           <header className="bg-white shadow">
             <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center">
-                  <User className="h-5 w-5 mr-2" />
-                </div>
+              <div className="flex justify-end items-center">
                 <button
                   onClick={handleLogout}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"

@@ -39,19 +39,6 @@ export function Header() {
 
           {/* Right side */}
           <div className="flex items-center space-x-4">
-            <div className="relative">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full"
-                asChild
-              >
-                <Link to="/organizer/profile">
-                  <User className="h-5 w-5" />
-                  <span className="sr-only">View profile</span>
-                </Link>
-              </Button>
-            </div>
             <Button
               variant="outline"
               size="sm"
