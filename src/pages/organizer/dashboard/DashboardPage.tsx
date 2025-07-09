@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { PayoutRequestDialog } from '@/components/PayoutRequestDialog';
 import { useToast } from '@/components/ui/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -109,8 +110,8 @@ const DashboardPage = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentEvents, setRecentEvents] = useState<RecentEvent[]>([]);
   const [recentSales, setRecentSales] = useState<RecentSale[]>([]);
-  const { toast } = useToast();
   const { getToken } = useOrganizerAuth();
+  const { toast } = useToast();
 
   // Fetch dashboard data
   const fetchDashboardData = useCallback(async () => {
@@ -145,12 +146,15 @@ const DashboardPage = () => {
       setError(null);
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
-      setError('Failed to load dashboard data. Please try again later.');
-      toast({
-        title: 'Error',
-        description: 'Failed to load dashboard data',
-        variant: 'destructive',
-      });
+      const errorMessage = 'Failed to load dashboard data. Please try again later.';
+      setError(errorMessage);
+      if (toast) {
+        toast({
+          title: 'Error',
+          description: errorMessage,
+          variant: 'destructive',
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -337,6 +341,7 @@ const DashboardPage = () => {
             </svg>
             New Event
           </Link>
+          <PayoutRequestDialog />
         </div>
       </div>
 

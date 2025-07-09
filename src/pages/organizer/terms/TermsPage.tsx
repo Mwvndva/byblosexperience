@@ -22,20 +22,26 @@ export default function TermsPage() {
 
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-semibold">1. 🧾 Platform Commission</h3>
+              <h3 className="text-lg font-semibold">1. 🧾 Platform Commission & Services</h3>
               <ul className="list-disc pl-6 mt-2 space-y-1">
-                <li>Byblos will deduct a 3% commission on every successful ticket sale made through the platform.</li>
+                <li>Byblos will deduct a 6% commission on every successful ticket sale made through the platform.</li>
+                <li>This commission includes:
+                  <ul className="list-disc pl-6">
+                    <li>Platform services and transaction processing</li>
+                    <li>Two (2) trained staff members for on-site ticket validation</li>
+                  </ul>
+                </li>
                 <li>Commission is calculated based on the total amount paid by the customer, inclusive of all taxes and fees.</li>
                 <li>The commission is non-refundable.</li>
               </ul>
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold">2. 👥 On-Site Ticket Validation Support</h3>
+              <h3 className="text-lg font-semibold">2. 📵 No Misrepresentation</h3>
               <ul className="list-disc pl-6 mt-2 space-y-1">
-                <li>Byblos provides two (2) trained staff members to assist with ticket validation at event entry.</li>
-                <li>This service is mandatory for all public events and costs KES 3,000 per event day.</li>
-                <li>This fee will be deducted automatically from the organizer's ticket sales before any payouts.</li>
+                <li>Organizers agree to provide truthful, accurate, and complete information about events.</li>
+                <li>Events must comply with Kenyan laws, including licensing, public gathering rules, and county-level regulations.</li>
+                <li>Byblos reserves the right to suspend or remove any event that is misleading, unsafe, or illegal.</li>
               </ul>
             </div>
 

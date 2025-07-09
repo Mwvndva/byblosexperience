@@ -253,6 +253,7 @@ app.use('/api/sellers', sellerRoutes);
 
 // Import the event routes
 import eventRoutes from './routes/event.routes.js';
+import protectedOrganizerRoutes from './routes/protectedOrganizer.routes.js';
 
 // Mount the event routes
 app.use('/api/events', eventRoutes);
@@ -272,6 +273,9 @@ protectedRouter.use(protect);
 // Mount protected routes
 protectedRouter.use('/dashboard', dashboardRoutes);
 protectedRouter.use('/tickets', ticketRoutes); // This will be mounted at /api/organizers/tickets
+
+// Mount protected organizer routes (payouts, etc.)
+protectedRouter.use('/', protectedOrganizerRoutes);
 
 // Mount protected event routes under /api/organizers/events
 const protectedEventRouter = express.Router();
