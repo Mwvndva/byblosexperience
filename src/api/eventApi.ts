@@ -76,12 +76,19 @@ export const getUpcomingEvents = async (limit: number = 10): Promise<Event[]> =>
     
     console.log('API Response:', response.data);
     
-    if (!response.data || !Array.isArray(response.data)) {
-      console.error('Unexpected API response format:', response.data);
-      throw new Error('Invalid response format from server');
+    // If the response is already an array, return it directly
+    if (Array.isArray(response.data)) {
+      return response.data;
     }
     
-    return response.data;
+    // If the response is an object with a data property that's an array, return that
+    if (response.data && Array.isArray(response.data.data)) {
+      return response.data.data;
+    }
+    
+    // If we get here, the response format is unexpected
+    console.error('Unexpected API response format:', response.data);
+    throw new Error('Invalid response format from server');
   } catch (error) {
     console.error('Error in getUpcomingEvents:', {
       message: error.message,
