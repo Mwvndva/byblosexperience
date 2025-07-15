@@ -162,6 +162,12 @@ export function SellerLogin() {
               {isLoading ? 'Signing in...' : 'Sign in'}
             </Button>
             
+            <div className="mt-4 text-center">
+              <Link to="/" className="text-sm text-gray-600 hover:text-gray-800">
+                Back to Homepage
+              </Link>
+            </div>
+            
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300"></div>

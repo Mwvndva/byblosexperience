@@ -15,6 +15,8 @@ export function SellerLayout({ children }: SellerLayoutProps) {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isAuthenticated = localStorage.getItem('sellerToken') !== null;
+  const isLoginPage = location.pathname === '/seller/login';
+  const isRegisterPage = location.pathname === '/seller/register';
 
   const handleLogout = () => {
     localStorage.removeItem('sellerToken');
@@ -147,19 +149,21 @@ export function SellerLayout({ children }: SellerLayoutProps) {
         {/* Main content */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Header */}
-          <header className="bg-white shadow">
-            <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-              <div className="flex justify-end items-center">
-                <button
-                  onClick={handleLogout}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Log out
-                </button>
+          {!isLoginPage && !isRegisterPage && (
+            <header className="bg-white shadow">
+              <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+                <div className="flex justify-end items-center">
+                  <button
+                    onClick={handleLogout}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Log out
+                  </button>
+                </div>
               </div>
-            </div>
-          </header>
+            </header>
+          )}
 
           {/* Content */}
           <main className="flex-1 relative overflow-y-auto focus:outline-none">
@@ -171,22 +175,24 @@ export function SellerLayout({ children }: SellerLayoutProps) {
       </div>
 
       {/* Mobile footer */}
-      <footer className="md:hidden border-t border-gray-200">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-500">© 2025 Byblos Experience</span>
+      {!isLoginPage && !isRegisterPage && (
+        <footer className="md:hidden border-t border-gray-200">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center py-4">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-500"> 2025 Byblos Experience</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-5 w-5" />
+              </Button>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleLogout}
-            >
-              <LogOut className="h-5 w-5" />
-            </Button>
           </div>
-        </div>
-      </footer>
+        </footer>
+      )}
     </div>
   );
 }

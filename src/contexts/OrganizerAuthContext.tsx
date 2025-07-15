@@ -3,6 +3,11 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 
+export interface AuthError extends Error {
+  description?: string;
+  isAuthError?: boolean;
+}
+
 export interface Organizer {
   id: number;
   full_name: string;
@@ -37,6 +42,8 @@ export interface AuthContextType {
 }
 
 export const OrganizerAuthContext = createContext<AuthContextType | undefined>(undefined);
+
+
 
 interface OrganizerAuthProviderProps {
   children: ReactNode;
@@ -263,33 +270,26 @@ export const OrganizerAuthProvider = ({ children }: OrganizerAuthProviderProps) 
       setOrganizer(null);
       setToken(null);
       
-      // Format error message
-      let errorMessage = 'Login failed. Please try again.';
+      // Format error message based on error type
+      let errorMessage = 'Invalid email or password. Please try again.';
       
       if (error.response) {
-        if (error.response.status === 401) {
-          errorMessage = 'Invalid email or password';
-        } else if (error.response.data?.message) {
-          errorMessage = error.response.data.message;
-        }
+        errorMessage = error.response.data?.message || errorMessage;
       } else if (error.request) {
-        errorMessage = 'No response from server. Please check your connection.';
-      } else {
-        errorMessage = error.message || errorMessage;
+        errorMessage = 'No response from server. Please check your internet connection and try again.';
       }
-      
-      // Create a new error with consistent format
-      const authError = new Error(errorMessage);
-      (authError as any).isAuthError = true;
-      
-      // Set error state
-      setError(authError);
       
       // Show error toast
       toast.error(errorMessage);
       
+      // Clear auth state
+      localStorage.removeItem('organizerToken');
+      delete api.defaults.headers.common['Authorization'];
+      setOrganizer(null);
+      setToken(null);
+      
       // Re-throw the error for component-level handling
-      throw authError;
+      throw new Error(errorMessage);
     } finally {
       setIsLoading(false);
     }

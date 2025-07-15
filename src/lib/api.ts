@@ -45,7 +45,7 @@ const getToken = () => {
 api.interceptors.request.use(
   (config) => {
     // Skip adding token for auth endpoints
-    const authEndpoints = ['/organizers/login', '/organizers/register', '/organizers/refresh-token', '/organizers/forgot-password', '/organizers/reset-password/'];
+    const authEndpoints = ['/organizers/login', '/organizers/register', '/organizers/forgot-password', '/organizers/reset-password/'];
     const isAuthEndpoint = authEndpoints.some(endpoint => config.url?.includes(endpoint));
     
     if (!isAuthEndpoint) {
@@ -62,43 +62,14 @@ api.interceptors.request.use(
   }
 );
 
-// Add a response interceptor to handle token refresh and errors
+// Add a response interceptor to handle errors
 api.interceptors.response.use(
   (response) => {
     return response;
   },
-  async (error) => {
-    const originalRequest = error.config;
-    
-    // If error is not 401 or we've already tried to refresh, reject
-    if (error.response?.status !== 401 || originalRequest._retry) {
-      return Promise.reject(error);
-    }
-    
-    // Mark request as retried to prevent infinite loops
-    originalRequest._retry = true;
-    
-    try {
-      // Try to refresh the token
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3002/api'}/organizers/refresh-token`,
-        {},
-        { withCredentials: true }
-      );
-      
-      const { token } = response.data.data;
-      
-      // Store the new token
-      localStorage.setItem('organizerToken', token);
-      
-      // Update the Authorization header
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      originalRequest.headers['Authorization'] = `Bearer ${token}`;
-      
-      // Retry the original request
-      return api(originalRequest);
-    } catch (refreshError) {
-      // If refresh fails, log out the user
+  (error) => {
+    // If it's a 401 error, clear auth state and redirect to login
+    if (error.response?.status === 401) {
       localStorage.removeItem('organizerToken');
       delete api.defaults.headers.common['Authorization'];
       
@@ -106,9 +77,9 @@ api.interceptors.response.use(
       if (!window.location.pathname.includes('/login')) {
         window.location.href = '/organizer/login';
       }
-      
-      return Promise.reject(refreshError);
     }
+    
+    return Promise.reject(error);
   }
 );
 

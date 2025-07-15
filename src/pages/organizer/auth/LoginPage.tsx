@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useOrganizerAuth } from '@/contexts/OrganizerAuthContext';
 import { Loader2 } from 'lucide-react';
+import { AuthError } from '@/contexts/OrganizerAuthContext';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -73,18 +74,6 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
-  
-  // Handle form submission with proper type safety
-  const handleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    try {
-      await handleSubmit(onSubmit)();
-    } catch (error) {
-      console.error('Form submission error:', error);
-    }
-  };
 
   // If already authenticated, redirect to dashboard
   if (isAuthenticated) {
@@ -100,70 +89,72 @@ export default function LoginPage() {
             Enter your email and password to access your organizer dashboard
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleFormSubmit} noValidate className="animate-in fade-in">
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="your@email.com"
-                {...register('email')}
-                className={errors.email ? 'border-red-500' : ''}
-              />
-              {errors.email && (
-                <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>
-              )}
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 animate-in fade-in">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="your@email.com"
+                  {...register('email')}
+                  className={errors.email ? 'border-red-500' : ''}
+                />
+                {errors.email && (
+                  <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <Link
+                    to="/organizer/forgot-password"
+                    className="text-sm font-medium text-primary hover:underline"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  {...register('password')}
+                  className={errors.password ? 'border-red-500' : ''}
+                />
+                {errors.password && (
+                  <p className="text-sm text-red-500 mt-1">{errors.password.message}</p>
+                )}
+              </div>
             </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Link
-                  to="/organizer/forgot-password"
-                  className="text-sm font-medium text-primary hover:underline"
-                >
-                  Forgot password?
+            <div className="flex flex-col space-y-4">
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  'Sign In'
+                )}
+              </Button>
+              <div className="text-sm text-center">
+                Don't have an account?{' '}
+                <Link to="/organizer/register" className="font-medium text-primary hover:underline">
+                  Sign up
                 </Link>
               </div>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                {...register('password')}
-                className={errors.password ? 'border-red-500' : ''}
-              />
-              {errors.password && (
-                <p className="text-sm text-red-500 mt-1">{errors.password.message}</p>
-              )}
+              <div className="text-center pt-2">
+                <Link 
+                  to="/" 
+                  className="text-sm font-medium text-gray-600 hover:text-primary transition-colors"
+                >
+                  Go Back to Homepage
+                </Link>
+              </div>
             </div>
-          </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                'Sign In'
-              )}
-            </Button>
-            <div className="text-sm text-center">
-              Don't have an account?{' '}
-              <Link to="/organizer/register" className="font-medium text-primary hover:underline">
-                Sign up
-              </Link>
-            </div>
-            <div className="text-center pt-2">
-              <Link 
-                to="/" 
-                className="text-sm font-medium text-gray-600 hover:text-primary transition-colors"
-              >
-                Go Back to Homepage
-              </Link>
-            </div>
-          </CardFooter>
-        </form>
+          </form>
+        </CardContent>
       </Card>
     </div>
   );

@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -206,8 +206,14 @@ const SellerRegistration = ({ onSuccess }: SellerRegistrationProps) => {
               required
             />
             {passwordError && (
-              <p className="text-sm text-red-500">{passwordError}</p>
+              <p className="mt-1 text-sm text-red-600">{passwordError}</p>
             )}
+          </div>
+          
+          <div className="mt-6 text-center">
+            <Link to="/" className="text-sm text-gray-600 hover:text-gray-800">
+              Back to Homepage
+            </Link>
           </div>
 
           <Button
@@ -217,6 +223,12 @@ const SellerRegistration = ({ onSuccess }: SellerRegistrationProps) => {
           >
             {isLoading ? 'Creating Account...' : 'Register as Seller'}
           </Button>
+          
+          <div className="mt-6 text-center">
+            <Link to="/seller/login" className="text-sm text-gray-600 hover:text-gray-800">
+              Back to Login
+            </Link>
+          </div>
         </form>
       </CardContent>
     </Card>
