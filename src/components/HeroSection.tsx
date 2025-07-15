@@ -12,27 +12,21 @@ const HeroSection = ({ onExploreClick, onEventsClick }: HeroSectionProps) => {
     <section className="relative min-h-screen flex items-center justify-center bg-black overflow-hidden">
       {/* Background elements */}
       <div className="absolute inset-0 bg-black/30 z-0" />
-      <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1445205170230-053b83016042?q=80&w=2071&auto=format&fit=crop')] bg-cover bg-center opacity-20" />
-      
-      {/* Wavy lines pattern */}
-      <div className="absolute inset-0 overflow-hidden opacity-5">
-        <div className="absolute inset-0">
-          <svg className="w-full h-full" viewBox="0 0 1200 1200" preserveAspectRatio="none">
-            <defs>
-              <pattern id="wavy-pattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
-                <path 
-                  d="M0,50 C20,30 40,70 60,50 C80,30 100,70 120,50 C140,30 160,70 180,50 C200,30 220,70 240,50 C260,30 280,70 300,50" 
-                  stroke="white" 
-                  strokeWidth="2" 
-                  fill="none"
-                  strokeLinecap="round"
-                />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#wavy-pattern)" />
-          </svg>
-        </div>
-      </div>
+      <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" 
+           style={{
+             backgroundImage: 'url(/herowallpaper/blackboredapewallpaper.png)',
+             backgroundSize: 'cover',
+             backgroundPosition: 'center',
+             imageRendering: 'crisp-edges',
+             WebkitFontSmoothing: 'antialiased',
+             MozOsxFontSmoothing: 'grayscale',
+             transform: 'translateZ(0)',
+             backfaceVisibility: 'hidden',
+             transformStyle: 'preserve-3d',
+             willChange: 'transform'
+           }}
+      />
+
       
       <div className="container mx-auto px-4 text-center relative z-10">
         <div className="max-w-4xl mx-auto">
