@@ -115,10 +115,10 @@ interface AestheticCategoriesProps {
 
 const AestheticCategories = ({ onAestheticChange, selectedAesthetic }: AestheticCategoriesProps) => {
   return (
-    <section className="py-16 bg-white">
+    <section className="py-16 bg-black">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <h2 className="font-serif text-4xl md:text-5xl font-bold text-noir mb-4">
+          <h2 className="font-serif text-4xl md:text-5xl font-bold text-yellow-300 mb-4">
             Choose Your Aesthetic
           </h2>
           <p className="text-gray-600 text-lg max-w-2xl mx-auto">

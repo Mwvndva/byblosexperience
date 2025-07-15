@@ -18,7 +18,7 @@ export function Sidebar() {
   return (
     <div
       id="sidebar"
-      className="fixed inset-y-0 left-0 z-20 w-64 -translate-x-full transform bg-white border-r border-gray-200 transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0"
+      className="fixed inset-y-0 left-0 z-20 w-64 -translate-x-full transform bg-black border-r border-gray-200 transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0"
       aria-label="Sidebar"
     >
       <div className="flex h-full flex-col overflow-y-auto">
