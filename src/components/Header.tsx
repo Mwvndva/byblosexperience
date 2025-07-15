@@ -4,12 +4,12 @@ import { Instagram, Calendar, ShoppingBag } from 'lucide-react';
 
 const Header = () => {
   return (
-    <header className="border-b border-yellow-300 bg-yellow-300 backdrop-blur-sm sticky top-0 z-50">
+    <header className="border-b border-black bg-black backdrop-blur-sm sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between w-full">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <h1 className="font-serif text-2xl font-bold text-noir">
+            <h1 className="font-serif text-2xl font-bold text-white">
               Byblos Experience
             </h1>
           </Link>
