@@ -76,12 +76,21 @@ export const getUpcomingEvents = async (limit: number = 10): Promise<Event[]> =>
     
     console.log('API Response:', response.data);
     
-    if (!response.data?.data || !Array.isArray(response.data.data)) {
+    // Handle both wrapped and direct array responses
+    let events: Event[];
+    
+    if (Array.isArray(response.data)) {
+      // Direct array response
+      events = response.data;
+    } else if (response.data?.data && Array.isArray(response.data.data)) {
+      // Wrapped response
+      events = response.data.data;
+    } else {
       console.error('Unexpected API response format:', response.data);
       throw new Error('Invalid response format from server');
     }
     
-    return response.data.data;
+    return events;
   } catch (error) {
     console.error('Error in getUpcomingEvents:', {
       message: error.message,
