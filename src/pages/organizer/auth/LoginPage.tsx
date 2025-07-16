@@ -1,31 +1,25 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useOrganizerAuth } from '@/contexts/OrganizerAuthContext';
-import { Loader2 } from 'lucide-react';
-import { AuthError } from '@/contexts/OrganizerAuthContext';
-
-const loginSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-});
-
-type LoginFormData = z.infer<typeof loginSchema>;
+import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
-  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { login, isAuthenticated, isLoading: isAuthLoading } = useOrganizerAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || '/organizer/dashboard';
+  const { toast } = useToast();
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -43,34 +37,30 @@ export default function LoginPage() {
     );
   }
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-  });
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
-  const onSubmit = async (data: LoginFormData) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (isLoading) return;
     
+    setIsLoading(true);
+
     try {
-      setIsLoading(true);
-      
-      // Call the login function from our auth context
-      await login(data.email, data.password);
-      
-      // The actual navigation will be handled by the useEffect above
-      // when isAuthenticated becomes true
-      
-    } catch (error: any) {
-      // Error is already handled by the auth context
+      await login(formData.email, formData.password);
+      // Navigation is handled by the useEffect when isAuthenticated changes
+    } catch (error) {
       console.error('Login error:', error);
-      
-      // Show error toast if not already shown by the auth context
-      if (error?.isAuthError !== true) {
-        toast.error('Login failed. Please try again.');
-      }
+      toast({
+        title: 'Error',
+        description: 'Invalid email or password',
+        variant: 'destructive',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -91,71 +81,45 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 animate-in fade-in">
+          <form onSubmit={handleSubmit} className="space-y-6 animate-in fade-in">
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
                   placeholder="your@email.com"
-                  {...register('email')}
-                  className={errors.email ? 'border-red-500' : ''}
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  className="w-full"
                 />
-                {errors.email && (
-                  <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>
-                )}
               </div>
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  <Link
-                    to="/organizer/forgot-password"
-                    className="text-sm font-medium text-primary hover:underline"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
+                <Label htmlFor="password">Password</Label>
                 <div className="relative">
                   <Input
                     id="password"
+                    name="password"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••"
-                    {...register('password')}
-                    className={errors.password ? 'border-red-500' : ''}
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className="w-full pr-10"
                   />
                   <button
                     type="button"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
                     onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      viewBox="0 0 20 20"
-                      fill={showPassword ? "currentColor" : "none"}
-                      stroke={showPassword ? "none" : "currentColor"}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13.89 2.096A7 7 0 005.11 14.904a2 2 0 002.343 2.11.997.997 0 001.414-.586 1.466 1.466 0 01-.404-2.063l-.405-.81a18.665 18.665 0 01-1.134-.71 4.678 4.678 0 01-.19-.455c-.012-.115-.018-.233-.018-.35.002-.12.006-.24.018-.351a4.678 4.678 0 01-.19-.454l-.404-.81a1.466 1.466 0 01-.405-2.064.997.997 0 001.413-.587 2 2 0 002.343 2.11A7 7 0 0013.89 2.096z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                        fill={showPassword ? "none" : "currentColor"}
-                        stroke={showPassword ? "currentColor" : "none"}
-                      />
-                    </svg>
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
                   </button>
                 </div>
-                {errors.password && (
-                  <p className="text-sm text-red-500 mt-1">{errors.password.message}</p>
-                )}
               </div>
             </div>
             <div className="flex flex-col space-y-4">

@@ -1,39 +1,30 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useOrganizerAuth } from '@/contexts/OrganizerAuthContext';
-import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
-
-const registerSchema = z
-  .object({
-    full_name: z.string().min(2, 'Name must be at least 2 characters'),
-    email: z.string().email('Please enter a valid email address'),
-    phone: z.string().min(10, 'Please enter a valid phone number'),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
-    passwordConfirm: z.string().min(8, 'Please confirm your password'),
-  })
-  .refine((data) => data.password === data.passwordConfirm, {
-    message: "Passwords don't match",
-    path: ['passwordConfirm'],
-  });
-
-type RegisterFormData = z.infer<typeof registerSchema>;
+import { Loader2, Eye, EyeOff, User, Mail, Phone, Lock } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function RegisterPage() {
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: ''
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
   const { register: registerUser, isAuthenticated, isLoading: isAuthLoading } = useOrganizerAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || '/organizer/dashboard';
+  const { toast } = useToast();
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -51,35 +42,65 @@ export default function RegisterPage() {
     );
   }
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<RegisterFormData>({
-    resolver: zodResolver(registerSchema),
-    mode: 'onChange',
-    defaultValues: {
-      full_name: '',
-      email: '',
-      phone: '',
-      password: '',
-      passwordConfirm: ''
+  const validatePasswords = (password: string, confirmPassword: string): boolean => {
+    if (password !== confirmPassword) {
+      setPasswordError('Passwords do not match');
+      return false;
     }
-  });
+    if (password.length < 8) {
+      setPasswordError('Password must be at least 8 characters long');
+      return false;
+    }
+    setPasswordError('');
+    return true;
+  };
 
-  const onSubmit = async (formData: RegisterFormData) => {
-    if (isLoading) return;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+
+    // Validate passwords when either field changes
+    if (name === 'password' || name === 'confirmPassword') {
+      if (formData.password && formData.confirmPassword) {
+        validatePasswords(
+          name === 'password' ? value : formData.password,
+          name === 'confirmPassword' ? value : formData.confirmPassword
+        );
+      }
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
+    // Validate form
+    if (!formData.fullName || !formData.email || !formData.phone || !formData.password || !formData.confirmPassword) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields",
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate passwords match
+    if (!validatePasswords(formData.password, formData.confirmPassword)) {
+      return;
+    }
+
+    setIsLoading(true);
+
     try {
-      setIsLoading(true);
-      
       // Prepare registration data
       const registrationData = {
-        full_name: formData.full_name.trim(),
+        full_name: formData.fullName.trim(),
         email: formData.email.trim().toLowerCase(),
         phone: formData.phone.trim(),
         password: formData.password,
-        passwordConfirm: formData.passwordConfirm
+        passwordConfirm: formData.confirmPassword
       };
       
       // Call the register function from our auth context
@@ -90,11 +111,14 @@ export default function RegisterPage() {
       
     } catch (error: any) {
       console.error('Registration error:', error);
+      const errorMessage = error.response?.data?.message || 
+                         (error instanceof Error ? error.message : 'An error occurred during registration');
       
-      // Show error toast if not already shown by the auth context
-      if (error?.isAuthError !== true) {
-        toast.error('Registration failed. Please try again.');
-      }
+      toast({
+        title: "Registration Failed",
+        description: errorMessage,
+        variant: 'destructive',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -114,138 +138,128 @@ export default function RegisterPage() {
             Fill in the form below to create your organizer account
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit(onSubmit)} noValidate className="animate-in fade-in">
+        <form onSubmit={handleSubmit} className="animate-in fade-in">
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="full_name">Full Name</Label>
+              <Label htmlFor="fullName" className="flex items-center space-x-2">
+                <User className="w-4 h-4" />
+                <span>Full Name</span>
+              </Label>
               <Input
-                id="full_name"
-                placeholder="John Doe"
-                {...register('full_name')}
-                className={errors.full_name ? 'border-red-500' : ''}
+                id="fullName"
+                name="fullName"
+                type="text"
+                value={formData.fullName}
+                onChange={handleInputChange}
+                placeholder="Enter your full name"
+                className="w-full"
+                required
               />
-              {errors.full_name && (
-                <p className="text-sm text-red-500 mt-1">{errors.full_name.message}</p>
-              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="flex items-center space-x-2">
+                <Mail className="w-4 h-4" />
+                <span>Email</span>
+              </Label>
               <Input
                 id="email"
+                name="email"
                 type="email"
+                value={formData.email}
+                onChange={handleInputChange}
                 placeholder="your@email.com"
-                {...register('email')}
-                className={errors.email ? 'border-red-500' : ''}
+                className="w-full"
+                required
               />
-              {errors.email && (
-                <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>
-              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
+              <Label htmlFor="phone" className="flex items-center space-x-2">
+                <Phone className="w-4 h-4" />
+                <span>Phone Number</span>
+              </Label>
               <Input
                 id="phone"
+                name="phone"
                 type="tel"
-                placeholder="+1 (555) 123-4567"
-                {...register('phone')}
-                className={errors.phone ? 'border-red-500' : ''}
+                value={formData.phone}
+                onChange={handleInputChange}
+                placeholder="Enter your phone number"
+                className="w-full"
+                required
               />
-              {errors.phone && (
-                <p className="text-sm text-red-500 mt-1">{errors.phone.message}</p>
-              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="flex items-center space-x-2">
+                <Lock className="w-4 h-4" />
+                <span>Password</span>
+              </Label>
               <div className="relative">
                 <Input
                   id="password"
+                  name="password"
                   type={showPassword ? 'text' : 'password'}
+                  value={formData.password}
+                  onChange={handleInputChange}
                   placeholder="••••••••"
-                  {...register('password')}
-                  className={errors.password ? 'border-red-500' : ''}
+                  minLength={8}
+                  className="w-full pr-10"
+                  required
                 />
                 <button
                   type="button"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    viewBox="0 0 20 20"
-                    fill={showPassword ? "currentColor" : "none"}
-                    stroke={showPassword ? "none" : "currentColor"}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13.89 2.096A7 7 0 005.11 14.904a2 2 0 002.343 2.11.997.997 0 001.414-.586 1.466 1.466 0 01-.404-2.063l-.405-.81a18.665 18.665 0 01-1.134-.71 4.678 4.678 0 01-.19-.455c-.012-.115-.018-.233-.018-.35.002-.12.006-.24.018-.351a4.678 4.678 0 01-.19-.454l-.404-.81a1.466 1.466 0 01-.405-2.064.997.997 0 001.413-.587 2 2 0 002.343 2.11A7 7 0 0013.89 2.096z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                      fill={showPassword ? "none" : "currentColor"}
-                      stroke={showPassword ? "currentColor" : "none"}
-                    />
-                  </svg>
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
-              {errors.password && (
-                <p className="text-sm text-red-500 mt-1">{errors.password.message}</p>
-              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="passwordConfirm">Confirm Password</Label>
+              <Label htmlFor="confirmPassword" className="flex items-center space-x-2">
+                <Lock className="w-4 h-4" />
+                <span>Confirm Password</span>
+              </Label>
               <div className="relative">
                 <Input
-                  id="passwordConfirm"
+                  id="confirmPassword"
+                  name="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
                   placeholder="••••••••"
-                  {...register('passwordConfirm')}
-                  className={errors.passwordConfirm ? 'border-red-500' : ''}
+                  minLength={8}
+                  className="w-full pr-10"
+                  required
                 />
                 <button
                   type="button"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    viewBox="0 0 20 20"
-                    fill={showConfirmPassword ? "currentColor" : "none"}
-                    stroke={showConfirmPassword ? "none" : "currentColor"}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13.89 2.096A7 7 0 005.11 14.904a2 2 0 002.343 2.11.997.997 0 001.414-.586 1.466 1.466 0 01-.404-2.063l-.405-.81a18.665 18.665 0 01-1.134-.71 4.678 4.678 0 01-.19-.455c-.012-.115-.018-.233-.018-.35.002-.12.006-.24.018-.351a4.678 4.678 0 01-.19-.454l-.404-.81a1.466 1.466 0 01-.405-2.064.997.997 0 001.413-.587 2 2 0 002.343 2.11A7 7 0 0013.89 2.096z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                      fill={showConfirmPassword ? "none" : "currentColor"}
-                      stroke={showConfirmPassword ? "currentColor" : "none"}
-                    />
-                  </svg>
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
-              {errors.passwordConfirm && (
-                <p className="text-sm text-red-500 mt-1">{errors.passwordConfirm.message}</p>
+              {passwordError && (
+                <p className="text-sm text-red-500 mt-1">{passwordError}</p>
               )}
             </div>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
+
+          <div className="px-6 pb-6">
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>
@@ -256,13 +270,14 @@ export default function RegisterPage() {
                 'Create Account'
               )}
             </Button>
-            <div className="text-sm text-center">
+
+            <div className="text-sm text-center mt-4">
               Already have an account?{' '}
               <Link to="/organizer/login" className="font-medium text-primary hover:underline">
                 Sign in
               </Link>
             </div>
-          </CardFooter>
+          </div>
         </form>
       </Card>
     </div>
