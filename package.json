@@ -48,6 +48,7 @@
     "@types/pg": "^8.15.4",
     "@types/qrcode": "^1.5.5",
     "@types/react-router-dom": "^5.3.3",
+    "@types/uuid": "^10.0.0",
     "@yudiel/react-qr-scanner": "^2.3.1",
     "axios": "^1.9.0",
     "axios-retry": "^4.5.0",
@@ -75,6 +76,7 @@
     "sonner": "^1.5.0",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
+    "uuid": "^11.1.0",
     "vaul": "^0.9.3",
     "zod": "^3.25.67"
   },

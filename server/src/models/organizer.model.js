@@ -88,24 +88,7 @@ const Organizer = {
     );
   },
 
-  async setResetPasswordToken(email, token, expires) {
-    await pool.query(
-      'UPDATE organizers SET reset_password_token = $1, reset_password_expires = $2 WHERE email = $3',
-      [token, expires, email]
-    );
-  },
 
-  async resetPassword(token, newPassword) {
-    const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
-    const result = await pool.query(
-      `UPDATE organizers 
-       SET password = $1, reset_password_token = NULL, reset_password_expires = NULL 
-       WHERE reset_password_token = $2 AND reset_password_expires > NOW()
-       RETURNING id, email`,
-      [hashedPassword, token]
-    );
-    return result.rows[0];
-  }
 };
 
 export default Organizer;

@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { sellerApi } from '@/api/sellerApi';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Mail } from 'lucide-react';
 
 export function SellerLogin() {
   const { toast } = useToast();
@@ -17,6 +18,9 @@ export function SellerLogin() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [isSendingResetLink, setIsSendingResetLink] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -45,6 +49,40 @@ export function SellerLogin() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotPasswordEmail) {
+      toast({
+        title: 'Error',
+        description: 'Please enter your email address',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSendingResetLink(true);
+    try {
+      // Call the forgot password API
+      await sellerApi.forgotPassword(forgotPasswordEmail);
+      
+      toast({
+        title: 'Reset link sent',
+        description: 'If an account exists with this email, you will receive a password reset link.',
+      });
+      setShowForgotPassword(false);
+      setForgotPasswordEmail('');
+    } catch (error: any) {
+      console.error('Error sending reset link:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to send reset link. Please try again later.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSendingResetLink(false);
     }
   };
 
@@ -98,6 +136,15 @@ export function SellerLogin() {
                     )}
                   </button>
                 </div>
+                <div className="text-right mt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-sm font-medium text-primary hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
               </div>
             </div>
             <div className="flex flex-col space-y-4">
@@ -133,6 +180,44 @@ export function SellerLogin() {
           </form>
         </CardContent>
       </Card>
+      
+      {/* Forgot Password Dialog */}
+      <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">Reset Your Password</DialogTitle>
+            <DialogDescription>
+              Enter your email address and we'll send you a link to reset your password.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleForgotPassword} className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label htmlFor="forgot-email" className="flex items-center space-x-2">
+                <Mail className="w-4 h-4" />
+                <span>Email Address</span>
+              </Label>
+              <Input
+                id="forgot-email"
+                type="email"
+                placeholder="your@email.com"
+                value={forgotPasswordEmail}
+                onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={isSendingResetLink}>
+              {isSendingResetLink ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                'Send Reset Link'
+              )}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

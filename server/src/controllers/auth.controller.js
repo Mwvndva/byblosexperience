@@ -116,62 +116,6 @@ export const login = async (req, res) => {
   }
 };
 
-export const forgotPassword = async (req, res) => {
-  try {
-    const { email } = req.body;
-    const organizer = await Organizer.findByEmail(email);
-
-    if (organizer) {
-      const resetToken = uuidv4();
-      const resetExpires = new Date(Date.now() + 3600000); // 1 hour from now
-      
-      await Organizer.setResetPasswordToken(email, resetToken, resetExpires);
-      await sendPasswordResetEmail(email, resetToken);
-    }
-
-    // Always return success to prevent email enumeration
-    res.status(200).json({
-      status: 'success',
-      message: 'If an account exists with this email, you will receive a password reset link'
-    });
-  } catch (error) {
-    console.error('Forgot password error:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'An error occurred while processing your request',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-};
-
-export const resetPassword = async (req, res) => {
-  try {
-    const { token } = req.params;
-    const { password } = req.body;
-
-    const organizer = await Organizer.resetPassword(token, password);
-
-    if (!organizer) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Invalid or expired reset token'
-      });
-    }
-
-    res.status(200).json({
-      status: 'success',
-      message: 'Password reset successful. You can now log in with your new password.'
-    });
-  } catch (error) {
-    console.error('Reset password error:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'An error occurred while resetting your password',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-};
-
 export const getCurrentUser = async (req, res) => {
   try {
     // Get user ID from req.user which is set by the auth middleware

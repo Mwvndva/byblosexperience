@@ -288,8 +288,57 @@ export const sellerApi = {
   // Analytics
   getAnalytics: async (): Promise<SellerAnalytics> => {
     const response = await sellerApiInstance.get('/sellers/analytics');
-    return response.data;
-  }
+    return response.data.data;
+  },
+
+  // Auth - Forgot Password
+  forgotPassword: async (email: string): Promise<{ message: string }> => {
+    try {
+      // Use the public API endpoint directly
+      const response = await axios.post(`${API_URL}/sellers/forgot-password`, { 
+        email: email.trim().toLowerCase() 
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      return response.data;
+    } catch (error: any) {
+      console.error('Forgot password error:', error);
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
+    }
+  },
+
+  // Reset Password
+  resetPassword: async (token: string, newPassword: string): Promise<{ message: string }> => {
+    try {
+      const response = await axios.post(
+        `${API_URL}/sellers/reset-password`,
+        { token, newPassword },
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          } 
+        }
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Reset password error:', error);
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      } else if (error.response?.data?.error) {
+        throw new Error(error.response.data.error);
+      } else if (error.message) {
+        throw new Error(error.message);
+      }
+      throw new Error('An unknown error occurred while resetting your password.');
+    }
+  },
 };
 
 export default sellerApi;

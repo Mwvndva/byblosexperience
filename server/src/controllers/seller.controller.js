@@ -1,4 +1,5 @@
-import { createSeller, findSellerByEmail, findSellerById, updateSeller, generateAuthToken, verifyPassword } from '../models/seller.model.js';
+import jwt from 'jsonwebtoken';
+import { createSeller, findSellerByEmail, findSellerById, updateSeller, generateAuthToken, verifyPassword, verifyPasswordResetToken, updatePassword } from '../models/seller.model.js';
 
 // Email validation regex
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -173,6 +174,127 @@ export const updateProfile = async (req, res) => {
     res.status(500).json({
       status: 'error',
       message: 'Failed to update profile'
+    });
+  }
+};
+
+import { sendPasswordResetEmail } from '../utils/email.js';
+import { createPasswordResetToken } from '../models/seller.model.js';
+
+/**
+ * @desc    Reset password
+ * @route   POST /api/sellers/reset-password
+ * @access  Public
+ */
+export const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Token and new password are required'
+      });
+    }
+
+    // Verify the token and get the email
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const email = decoded.email;
+
+    if (!email) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid token'
+      });
+    }
+
+    // Verify the token against the database
+    const isValidToken = await verifyPasswordResetToken(email, token);
+    
+    if (!isValidToken) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid or expired token. Please request a new password reset.'
+      });
+    }
+
+    // Update the password
+    await updatePassword(email, newPassword);
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Password has been reset successfully.'
+    });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    
+    if (error.name === 'TokenExpiredError') {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Token has expired. Please request a new password reset.'
+      });
+    }
+    
+    res.status(500).json({
+      status: 'error',
+      message: 'An error occurred while resetting your password.'
+    });
+  }
+};
+
+/**
+ * @desc    Forgot password
+ * @route   POST /api/sellers/forgot-password
+ * @access  Public
+ */
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Please provide an email address'
+      });
+    }
+
+    // Find seller by email
+    const seller = await findSellerByEmail(email);
+    
+    if (!seller) {
+      // For security, don't reveal if the email exists or not
+      return res.status(200).json({
+        status: 'success',
+        message: 'If an account exists with this email, you will receive a password reset link.'
+      });
+    }
+
+    try {
+      // 1. Create a password reset token
+      const resetToken = await createPasswordResetToken(email);
+      
+      // 2. Send the password reset email
+      await sendPasswordResetEmail(email, resetToken);
+      
+      console.log(`Password reset email sent to ${email}`);
+      
+      return res.status(200).json({
+        status: 'success',
+        message: 'If an account exists with this email, you will receive a password reset link.'
+      });
+    } catch (emailError) {
+      console.error('Error sending password reset email:', emailError);
+      // Still return success to the client for security
+      return res.status(200).json({
+        status: 'success',
+        message: 'If an account exists with this email, you will receive a password reset link.'
+      });
+    }
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: 'An error occurred while processing your request'
     });
   }
 };

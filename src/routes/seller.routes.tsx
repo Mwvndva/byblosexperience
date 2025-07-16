@@ -13,6 +13,7 @@ import { useToast } from '../hooks/use-toast';
 import { sellerApi } from '../api/sellerApi';
 import SellerOrdersPage from '../pages/seller/SellerOrdersPage';
 import { Plus, Pencil, Trash2, EyeOff, RefreshCw, CheckCircle } from 'lucide-react';
+import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { formatCurrency } from '../lib/utils';
@@ -228,6 +229,13 @@ const GuestRoute = () => {
 
 // Create the seller routes
 export const sellerRoutes: RouteObject[] = [
+  // Public auth routes (no layout)
+  {
+    path: '/seller/reset-password',
+    element: <ResetPasswordPage />,
+  },
+  
+  // Main seller routes with layout
   {
     path: '/seller',
     element: <SellerLayout><Outlet /></SellerLayout>,
@@ -288,17 +296,27 @@ export const sellerRoutes: RouteObject[] = [
             path: 'orders',
             element: <SellerOrdersPage />,
           },
+          
+          // Redirects for protected routes
+          {
+            path: '',
+            element: <Navigate to="dashboard" replace />,
+          },
+          {
+            path: '*',
+            element: <Navigate to="dashboard" replace />,
+          },
         ],
       },
       
-      // Redirects
+      // Redirects for non-protected routes
       {
         path: '',
-        element: <Navigate to="dashboard" replace />,
+        element: <Navigate to="login" replace />,
       },
       {
         path: '*',
-        element: <Navigate to="dashboard" replace />,
+        element: <Navigate to="login" replace />,
       },
     ],
   },

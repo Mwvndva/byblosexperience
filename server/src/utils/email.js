@@ -135,7 +135,12 @@ export const sendVerificationEmail = async (email, token) => {
 
 export const sendPasswordResetEmail = async (email, token) => {
   try {
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+    // Ensure we have a valid frontend URL
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const resetUrl = `${frontendUrl}/seller/reset-password?token=${token}`;
+    
+    console.log('Sending password reset email to:', email);
+    console.log('Reset URL:', resetUrl);
     
     const html = await readTemplate('reset-password', {
       resetUrl,
@@ -148,6 +153,8 @@ export const sendPasswordResetEmail = async (email, token) => {
       html,
       text: `You requested a password reset. Please click on the following link to reset your password: ${resetUrl}`,
     });
+    
+    console.log('Password reset email sent successfully to:', email);
   } catch (error) {
     console.error('Error sending password reset email:', error);
     throw error;

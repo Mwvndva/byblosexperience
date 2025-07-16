@@ -8,6 +8,8 @@ const router = express.Router();
 // Public routes
 router.post('/register', sellerController.register);
 router.post('/login', sellerController.login);
+router.post('/forgot-password', sellerController.forgotPassword);
+router.post('/reset-password', sellerController.resetPassword);
 
 // Protected routes (require authentication)
 router.use(protect);
