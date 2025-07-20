@@ -299,6 +299,7 @@ export const purchaseTickets = async (req, res, next) => {
               minute: '2-digit'
             }),
             venue: event.location,
+            eventImage: event.image_url ? 'cid:event-image' : null,
             eventDescription: event.description || 'No description available',
             
             // Customer information
@@ -411,6 +412,25 @@ export const purchaseTickets = async (req, res, next) => {
             });
           }
           
+          // Add event image as an attachment if available
+          if (event.image_url) {
+            try {
+              // Fetch the image from the URL
+              const response = await axios.get(event.image_url, { responseType: 'arraybuffer' });
+              if (response.status === 200) {
+                emailOptions.attachments.push({
+                  filename: 'event-image.png',
+                  content: response.data,
+                  cid: 'event-image', // This should match the cid used in the template
+                  contentType: 'image/png'
+                });
+                console.log('Successfully added event image to email attachments');
+              }
+            } catch (imageError) {
+              console.error('Error adding event image to email:', imageError);
+              // Continue without the image if there's an error
+            }
+          }        
           console.log('Email options:', {
             to: customerEmail,
             subject: emailOptions.subject,
