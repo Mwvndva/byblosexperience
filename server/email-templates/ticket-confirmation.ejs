@@ -253,6 +253,12 @@
             <div class="detail-label">Quantity</div>
             <div class="detail-value"><%= typeof quantity !== 'undefined' ? quantity : '1' %></div>
           </div>
+          <% if (typeof venue !== 'undefined' && venue) { %>
+          <div class="detail">
+            <div class="detail-label">Venue</div>
+            <div class="detail-value"><%= venue %></div>
+          </div>
+          <% } %>
           <div class="detail">
             <div class="detail-label">Price</div>
             <div class="detail-value">
@@ -378,6 +384,13 @@
           <% } %>
         </div>
 
+        <% if (typeof eventDescription !== 'undefined' && eventDescription) { %>
+        <div class="event-description" style="margin: 25px 0; padding: 20px; background: #f9fafb; border-radius: 8px; border-left: 4px solid #4f46e5;">
+          <h3 style="margin-top: 0; color: #111827; font-size: 18px; font-weight: 600;">About This Event</h3>
+          <p style="margin-bottom: 0; color: #4b5563; line-height: 1.6;"><%= eventDescription %></p>
+        </div>
+        <% } %>
+
         <div class="info-box">
           <p>Please present this email and the QR code below at the event entrance.</p>
         </div>
@@ -395,13 +408,6 @@
           <div style="margin-top: 5px; font-family: monospace; font-size: 14px; color: #4f46e5; font-weight: 500;">
             #<%= typeof ticketNumber !== 'undefined' ? ticketNumber : 'N/A' %>
           </div>
-          <% if (typeof validationUrl !== 'undefined') { %>
-            <p style="margin-top: 15px; font-size: 12px; color: #6b7280; word-break: break-all; max-width: 80%; margin-left: auto; margin-right: auto;">
-              <a href="<%= validationUrl %>" style="color: #4f46e5; text-decoration: none;">
-                <%= validationUrl %>
-              </a>
-            </p>
-          <% } %>
         </div>
 
         <div style="text-align: center; margin-top: 25px;">

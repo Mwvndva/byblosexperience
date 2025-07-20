@@ -299,6 +299,7 @@ export const purchaseTickets = async (req, res, next) => {
               minute: '2-digit'
             }),
             venue: event.location,
+            eventDescription: event.description || 'No description available',
             
             // Customer information
             customerName: customerName,
