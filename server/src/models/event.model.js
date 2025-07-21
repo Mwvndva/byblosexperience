@@ -430,24 +430,30 @@ const Event = {
         total_sold: parseInt(tt.total_sold || '0', 10)
       }));
       
-      // If no ticket types, create a default one based on event-level settings
-      if (ticketTypes.length === 0) {
-        const defaultTicketType = {
-          id: 'default',
-          name: 'General Admission',
-          description: 'General admission ticket',
-          price: parseFloat(event.ticket_price || '0'),
-          quantity: parseInt(event.ticket_quantity || '0', 10),
-          available: parseInt(event.ticket_quantity || '0', 10),
-          min_per_order: 1,
-          max_per_order: 10,
-          sales_start_date: null,
-          sales_end_date: null,
-          total_created: 0,
-          total_sold: 0,
-          is_default: true
-        };
-        ticketTypes.push(defaultTicketType);
+      // Only create a default ticket type if there are no ticket types at all
+      // and the event has ticket_quantity defined (legacy support)
+      if (ticketTypes.length === 0 && event.ticket_quantity) {
+        // Check if there's already a default ticket type
+        const hasDefaultTicketType = ticketTypes.some(tt => tt.is_default);
+        
+        if (!hasDefaultTicketType) {
+          const defaultTicketType = {
+            id: 'default',
+            name: 'General Admission',
+            description: 'General admission ticket',
+            price: parseFloat(event.ticket_price || '0'),
+            quantity: parseInt(event.ticket_quantity || '0', 10),
+            available: parseInt(event.ticket_quantity || '0', 10),
+            min_per_order: 1,
+            max_per_order: 10,
+            sales_start_date: null,
+            sales_end_date: null,
+            total_created: 0,
+            total_sold: 0,
+            is_default: true
+          };
+          ticketTypes.push(defaultTicketType);
+        }
       }
       
       // Calculate total available tickets

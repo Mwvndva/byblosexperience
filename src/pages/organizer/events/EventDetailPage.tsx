@@ -119,24 +119,51 @@ const fetchEvent = async (id: string): Promise<EventData> => {
       image_url: event.image_url,
       createdAt: event.created_at || event.createdAt || new Date().toISOString(),
       updatedAt: event.updated_at || event.updatedAt || new Date().toISOString(),
-      // Map ticket types if they exist
-      ticketTypes: (event.ticket_types || []).map((ticket: any) => {
-        // Calculate available quantity based on total quantity minus sold
-        const totalQuantity = parseInt(ticket.quantity || '0', 10);
-        const sold = parseInt(ticket.quantity_sold || ticket.sold || '0', 10);
-        const totalCreated = parseInt(ticket.total_created || ticket.sold || '0', 10);
+      // Process ticket types to remove duplicates and ensure data consistency
+      ticketTypes: (() => {
+        // First, normalize the ticket types array
+        const normalizedTickets = (event.ticket_types || []).map((ticket: any) => {
+          // Calculate available quantity based on total quantity minus sold
+          const totalQuantity = parseInt(ticket.quantity || '0', 10);
+          const sold = parseInt(ticket.quantity_sold || ticket.sold || '0', 10);
+          const totalCreated = parseInt(ticket.total_created || ticket.sold || '0', 10);
+          
+          return {
+            id: ticket.id?.toString() || Math.random().toString(36).substr(2, 9),
+            name: ticket.name || 'General Admission',
+            price: parseFloat(ticket.price || ticket.price_per_ticket || 0),
+            quantity: totalQuantity,
+            sold: sold,
+            total_created: totalCreated,
+            available: Math.max(0, totalQuantity - sold),
+            description: ticket.description || '',
+            is_default: ticket.is_default || false
+          };
+        });
+
+        // Remove duplicates by creating a map with ticket IDs as keys
+        const ticketMap = new Map();
         
-        return {
-          id: ticket.id?.toString() || Math.random().toString(36).substr(2, 9),
-          name: ticket.name || 'General Admission',
-          price: parseFloat(ticket.price || ticket.price_per_ticket || 0),
-          quantity: totalQuantity,
-          sold: sold,
-          total_created: totalCreated,
-          available: Math.max(0, totalQuantity - sold),
-          description: ticket.description || '',
-        };
-      }),
+        for (const ticket of normalizedTickets) {
+          // Skip default tickets if we already have a ticket with the same name and price
+          if (ticket.is_default) {
+            const existingTicket = Array.from(ticketMap.values()).find(
+              t => t.name === ticket.name && t.price === ticket.price
+            );
+            
+            if (existingTicket) {
+              console.log(`Skipping duplicate default ticket: ${ticket.name} (${ticket.price})`);
+              continue;
+            }
+          }
+          
+          // Add the ticket to the map, using its ID as the key
+          ticketMap.set(ticket.id, ticket);
+        }
+        
+        // Convert the map values back to an array
+        return Array.from(ticketMap.values());
+      })(),
       // Preserve raw data for debugging
       ticket_types: event.ticket_types,
       total_tickets_sold: event.total_tickets_sold,

@@ -169,7 +169,29 @@ export const createEvent = async (req, res) => {
     
     // Process ticket types if any
     if (ticketTypes && ticketTypes.length > 0) {
-      for (const type of ticketTypes) {
+      for (const [index, type] of ticketTypes.entries()) {
+        if (!type.name) {
+          throw new Error(`Ticket type ${index + 1} is missing a name`);
+        }
+        if (type.price === undefined || type.price === null) {
+          throw new Error(`Ticket type "${type.name}" is missing a price`);
+        }
+        if (type.quantity === undefined || type.quantity === null) {
+          throw new Error(`Ticket type "${type.name}" is missing a quantity`);
+        }
+        
+        const price = typeof type.price === 'string' ? parseFloat(type.price) : Number(type.price);
+        const quantity = typeof type.quantity === 'string' ? 
+          parseInt(type.quantity, 10) : 
+          Math.max(1, Math.floor(Number(type.quantity) || 1));
+          
+        if (isNaN(price) || price < 0) {
+          throw new Error(`Invalid price for ticket type "${type.name}"`);
+        }
+        if (isNaN(quantity) || quantity < 1) {
+          throw new Error(`Invalid quantity for ticket type "${type.name}"`);
+        }
+        
         // Handle dates safely
         let salesStartDate = null;
         let salesEndDate = null;
@@ -189,11 +211,6 @@ export const createEvent = async (req, res) => {
           console.error('Error parsing dates:', dateError);
           throw new Error(`Invalid date format for ticket type "${type.name}"`);
         }
-        
-        const price = typeof type.price === 'string' ? parseFloat(type.price) : Number(type.price);
-        const quantity = typeof type.quantity === 'string' ? 
-          parseInt(type.quantity, 10) : 
-          Math.max(1, Math.floor(Number(type.quantity) || 1));
         
         ticketsToInsert.push({
           name: type.name,
@@ -221,159 +238,35 @@ export const createEvent = async (req, res) => {
         price: price,
         quantity: quantity,
         sales_start_date: null,
-        sales_end_date: null
+        sales_end_date: null,
+        is_default: true
       });
-    } else if (ticketTypes && ticketTypes.length > 0) {
-        // Validate and prepare provided ticket types
-        for (const [index, type] of ticketTypes.entries()) {
-          if (!type.name) {
-            throw new Error(`Ticket type ${index + 1} is missing a name`);
-          }
-          if (type.price === undefined || type.price === null) {
-            throw new Error(`Ticket type "${type.name}" is missing a price`);
-          }
-          if (type.quantity === undefined || type.quantity === null) {
-            throw new Error(`Ticket type "${type.name}" is missing a quantity`);
-          }
-          
-          const price = typeof type.price === 'string' ? parseFloat(type.price) : Number(type.price);
-          const quantity = typeof type.quantity === 'string' ? 
-            parseInt(type.quantity, 10) : 
-            Math.max(1, Math.floor(Number(type.quantity) || 1));
-            
-          if (isNaN(price) || price < 0) {
-            throw new Error(`Invalid price for ticket type "${type.name}"`);
-          }
-          if (isNaN(quantity) || quantity < 1) {
-            throw new Error(`Invalid quantity for ticket type "${type.name}"`);
-          }
-          
-          // Handle dates safely
-          let salesStartDate = null;
-          let salesEndDate = null;
-          
-          try {
-            salesStartDate = type.salesStartDate ? new Date(type.salesStartDate) : null;
-            salesEndDate = type.salesEndDate ? new Date(type.salesEndDate) : null;
-            
-            // Validate dates
-            if (salesStartDate && isNaN(salesStartDate.getTime())) {
-              throw new Error(`Invalid sales start date for ticket type "${type.name}"`);
-            }
-            if (salesEndDate && isNaN(salesEndDate.getTime())) {
-              throw new Error(`Invalid sales end date for ticket type "${type.name}"`);
-            }
-          } catch (dateError) {
-            console.error('Error parsing dates:', dateError);
-            throw new Error(`Invalid date format for ticket type "${type.name}"`);
-          }
-          
-          ticketsToInsert.push({
-            name: type.name,
-            description: type.description || '',
-            price: price,
-            quantity: quantity,
-            sales_start_date: salesStartDate,
-            sales_end_date: salesEndDate
-          });
-        }
-      } else {
-        throw new Error('Either provide ticket_quantity and ticket_price or at least one ticket type');
-      }
+    } else {
+      throw new Error('Either provide ticket_quantity and ticket_price or at least one ticket type');
+    }
 
-      // Insert ticket types if any
-      if (ticketsToInsert.length > 0) {
-        console.log('Preparing to insert ticket types:', ticketsToInsert);
-        
-        // Insert tickets one by one to get better error messages
-        for (const ticket of ticketsToInsert) {
-          console.log('Inserting ticket:', ticket);
-          try {
-            await client.query(
-              `INSERT INTO public.ticket_types (
-                event_id, name, description, price, quantity, sales_start_date, sales_end_date,
-                created_at, updated_at
-              ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
-              [
-                event.id,
-                ticket.name,
-                ticket.description || null,
-                ticket.price,
-                ticket.quantity,
-                ticket.sales_start_date || null,
-                ticket.sales_end_date || null
-              ]
-            );
-            console.log('Successfully inserted ticket type:', ticket.name);
-          } catch (ticketError) {
-            console.error('Error inserting ticket:', ticket, 'Error:', ticketError);
-            throw new Error(`Failed to insert ticket type ${ticket.name}: ${ticketError.message}`);
-          }
-        }
-      }
-
-      // Process ticket types if any
-      if (ticketTypes && ticketTypes.length > 0) {
-        for (const [index, type] of ticketTypes.entries()) {
-          // Handle dates safely
-          let salesStartDate = null;
-          let salesEndDate = null;
-          
-          try {
-            salesStartDate = type.salesStartDate ? new Date(type.salesStartDate) : null;
-            salesEndDate = type.salesEndDate ? new Date(type.salesEndDate) : null;
-            
-            // Validate dates
-            if (salesStartDate && isNaN(salesStartDate.getTime())) {
-              throw new Error(`Invalid sales start date for ticket type "${type.name}"`);
-            }
-            if (salesEndDate && isNaN(salesEndDate.getTime())) {
-              throw new Error(`Invalid sales end date for ticket type "${type.name}"`);
-            }
-          } catch (dateError) {
-            console.error('Error parsing dates:', dateError);
-            throw new Error(`Invalid date format for ticket type "${type.name}"`);
-          }
-          
-          const price = typeof type.price === 'string' ? parseFloat(type.price) : Number(type.price);
-          const quantity = typeof type.quantity === 'string' ? 
-            parseInt(type.quantity, 10) : 
-            Math.max(1, Math.floor(Number(type.quantity) || 1));
-          
-          ticketsToInsert.push({
-            name: type.name,
-            description: type.description || '',
-            price: price,
-            quantity: quantity,
-            sales_start_date: salesStartDate,
-            sales_end_date: salesEndDate
-          });
-        }
-      } else if (!ticket_quantity || !ticket_price) {
-        throw new Error('Either provide ticket_quantity and ticket_price or at least one ticket type');
-      }
-
-      // Insert ticket types if any
-      if (ticketsToInsert.length > 0) {
-        console.log('Preparing to insert ticket types:', ticketsToInsert);
-        
-        for (const ticket of ticketsToInsert) {
-          console.log('Inserting ticket:', ticket);
-          try {
-            await client.query(
-              `INSERT INTO public.ticket_types (
-                event_id, name, description, price, quantity, sales_start_date, sales_end_date,
-                created_at, updated_at
-              ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
-              [
-                event.id,
-                ticket.name,
-                ticket.description || null,
-                ticket.price,
-                ticket.quantity,
-                ticket.sales_start_date || null,
-                ticket.sales_end_date || null
-              ]
+    // Insert ticket types if any
+    if (ticketsToInsert.length > 0) {
+      console.log('Preparing to insert ticket types:', ticketsToInsert);
+      
+      // Insert tickets one by one to get better error messages
+      for (const ticket of ticketsToInsert) {
+        console.log('Inserting ticket:', ticket);
+        try {
+          await client.query(
+            `INSERT INTO public.ticket_types (
+              event_id, name, description, price, quantity, sales_start_date, sales_end_date,
+              created_at, updated_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
+            [
+              event.id,
+              ticket.name,
+              ticket.description || null,
+              ticket.price,
+              ticket.quantity,
+              ticket.sales_start_date || null,
+              ticket.sales_end_date || null
+            ]
             );
             console.log('Successfully inserted ticket type:', ticket.name);
           } catch (ticketError) {
