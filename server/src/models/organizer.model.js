@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { pool } from '../config/database.js';
 
 const SALT_ROUNDS = 10;
@@ -88,7 +89,64 @@ const Organizer = {
     );
   },
 
+  async createPasswordResetToken(email) {
+    // Generate a random token
+    const token = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    
+    // Hash the token before saving to database
+    const hashedToken = await bcrypt.hash(token, SALT_ROUNDS);
+    
+    // Set token expiration (1 hour from now)
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1);
+    
+    // Save the hashed token and expiration to the database
+    await pool.query(
+      `UPDATE organizers 
+       SET password_reset_token = $1, 
+           password_reset_expires = $2 
+       WHERE email = $3`,
+      [hashedToken, expiresAt, email]
+    );
+    
+    // Return the unhashed token (to be sent via email)
+    return token;
+  },
 
+  async verifyPasswordResetToken(email, token) {
+    // Find the organizer with the given email and a valid reset token
+    const result = await pool.query(
+      `SELECT password_reset_token, password_reset_expires 
+       FROM organizers 
+       WHERE email = $1 AND password_reset_expires > NOW()`,
+      [email]
+    );
+    
+    if (!result.rows[0]) {
+      return false;
+    }
+    
+    const { password_reset_token: hashedToken } = result.rows[0];
+    
+    // Verify the token matches the hashed version in the database
+    return await bcrypt.compare(token, hashedToken);
+  },
+
+  async updatePassword(email, newPassword) {
+    const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    
+    const result = await pool.query(
+      `UPDATE organizers 
+       SET password = $1, 
+           password_reset_token = NULL, 
+           password_reset_expires = NULL 
+       WHERE email = $2
+       RETURNING id, full_name, email, phone`,
+      [hashedPassword, email]
+    );
+    
+    return result.rows[0];
+  }
 };
 
 export default Organizer;
