@@ -346,33 +346,20 @@ export default function EventsPage({ eventId, isEmbed = false }: EventsPageProps
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">Upcoming Events</h1>
-            <p className="text-xl text-gray-600">Loading events...</p>
+      <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 relative">
+        <div className="fixed inset-0 w-screen h-screen bg-cover bg-center opacity-100" style={{ 
+          backgroundImage: 'url(/backgroundwallpaper/byblosbackground.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }} />
+        <div className="absolute inset-0 bg-black/70 -z-10" />
+        <div className="max-w-7xl mx-auto relative z-10 text-center py-20">
+          <h1 className="text-4xl font-bold text-yellow-300 mb-4">Loading Events</h1>
+          <div className="flex justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-300"></div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[...Array(6)].map((_, i) => (
-              <Card key={i} className="animate-pulse">
-                <div className="h-48 bg-gray-200 rounded-t-lg"></div>
-                <CardHeader>
-                  <Skeleton className="h-6 w-3/4 mb-2" />
-                  <Skeleton className="h-4 w-1/2" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {[...Array(3)].map((_, i) => (
-                      <Skeleton key={i} className="h-4 w-full" />
-                    ))}
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Skeleton className="h-10 w-full" />
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+          <p className="mt-4 text-gray-300">Fetching the latest events for you...</p>
         </div>
       </div>
     );
@@ -418,12 +405,19 @@ export default function EventsPage({ eventId, isEmbed = false }: EventsPageProps
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 relative">
+      <div className="fixed inset-0 w-screen h-screen bg-cover bg-center opacity-100" style={{ 
+        backgroundImage: 'url(/backgroundwallpaper/byblosbackground.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }} />
+      <div className="absolute inset-0 bg-black/70 -z-10" />
+      <div className="max-w-7xl mx-auto relative z-10">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
           <div className="text-center sm:text-left">
-            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">Upcoming Events</h1>
-            <p className="text-lg text-gray-600">Find and book tickets for amazing events</p>
+            <h1 className="text-3xl sm:text-4xl font-bold text-yellow-300 mb-2">Upcoming Events</h1>
+            <p className="text-lg text-white">Find and book tickets for amazing events</p>
           </div>
           <div className="flex items-center gap-3">
             <Button 

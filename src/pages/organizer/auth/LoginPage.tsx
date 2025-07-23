@@ -72,8 +72,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md shadow-lg">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
+      <div className="fixed inset-0 w-screen h-screen bg-cover bg-center opacity-100" style={{ 
+        backgroundImage: 'url(/backgroundwallpaper/byblosbackground.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }} />
+      <div className="absolute inset-0 bg-black/70 -z-10" />
+      <Card className="w-full max-w-md shadow-lg relative z-10 border-t-4 border-yellow-300">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center text-gray-900">Organizer Login</CardTitle>
           <CardDescription className="text-center text-gray-600">
@@ -128,7 +135,7 @@ export default function LoginPage() {
               </div>
             </div>
             <div className="flex flex-col space-y-4">
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full bg-noir hover:bg-noir-light text-black" disabled={isLoading}>
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

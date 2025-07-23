@@ -117,8 +117,15 @@ const SellerRegistration = ({ onSuccess }: SellerRegistrationProps) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md shadow-lg">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
+      <div className="fixed inset-0 w-screen h-screen bg-cover bg-center opacity-100" style={{ 
+        backgroundImage: 'url(/backgroundwallpaper/byblosbackground.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }} />
+      <div className="absolute inset-0 bg-black/70 -z-10" />
+      <Card className="w-full max-w-md shadow-lg relative z-10 border-t-4 border-yellow-300">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center text-gray-900">Create Seller Account</CardTitle>
           <CardDescription className="text-center text-gray-600">
@@ -130,10 +137,7 @@ const SellerRegistration = ({ onSuccess }: SellerRegistrationProps) => {
           <form onSubmit={handleSubmit} className="space-y-6 animate-in fade-in">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="fullName" className="flex items-center space-x-2">
-                  <User className="w-4 h-4" />
-                  <span>Full Name</span>
-                </Label>
+                <Label htmlFor="fullName">Full Name</Label>
                 <Input
                   id="fullName"
                   name="fullName"
@@ -147,10 +151,7 @@ const SellerRegistration = ({ onSuccess }: SellerRegistrationProps) => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email" className="flex items-center space-x-2">
-                  <Mail className="w-4 h-4" />
-                  <span>Email</span>
-                </Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   name="email"
@@ -164,10 +165,7 @@ const SellerRegistration = ({ onSuccess }: SellerRegistrationProps) => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone" className="flex items-center space-x-2">
-                  <Phone className="w-4 h-4" />
-                  <span>Phone Number</span>
-                </Label>
+                <Label htmlFor="phone">Phone Number</Label>
                 <Input
                   id="phone"
                   name="phone"
@@ -181,10 +179,7 @@ const SellerRegistration = ({ onSuccess }: SellerRegistrationProps) => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="flex items-center space-x-2">
-                  <Lock className="w-4 h-4" />
-                  <span>Password</span>
-                </Label>
+                <Label htmlFor="password">Password</Label>
                 <div className="relative">
                   <Input
                     id="password"
@@ -213,10 +208,7 @@ const SellerRegistration = ({ onSuccess }: SellerRegistrationProps) => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="flex items-center space-x-2">
-                  <Lock className="w-4 h-4" />
-                  <span>Confirm Password</span>
-                </Label>
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
                 <div className="relative">
                   <Input
                     id="confirmPassword"
@@ -254,7 +246,7 @@ const SellerRegistration = ({ onSuccess }: SellerRegistrationProps) => {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating account...
+                    Creating Account...
                   </>
                 ) : (
                   'Create Account'

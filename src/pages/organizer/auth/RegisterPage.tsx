@@ -130,8 +130,15 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md shadow-lg">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
+      <div className="fixed inset-0 w-screen h-screen bg-cover bg-center opacity-100" style={{ 
+        backgroundImage: 'url(/backgroundwallpaper/byblosbackground.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }} />
+      <div className="absolute inset-0 bg-black/70 -z-10" />
+      <Card className="w-full max-w-md shadow-lg relative z-10 border-t-4 border-yellow-300">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center text-gray-900">Create an Organizer Account</CardTitle>
           <CardDescription className="text-center text-gray-600">
@@ -141,10 +148,7 @@ export default function RegisterPage() {
         <form onSubmit={handleSubmit} className="animate-in fade-in">
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="fullName" className="flex items-center space-x-2">
-                <User className="w-4 h-4" />
-                <span>Full Name</span>
-              </Label>
+              <Label htmlFor="fullName">Full Name</Label>
               <Input
                 id="fullName"
                 name="fullName"
@@ -158,10 +162,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="flex items-center space-x-2">
-                <Mail className="w-4 h-4" />
-                <span>Email</span>
-              </Label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 name="email"
@@ -175,10 +176,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone" className="flex items-center space-x-2">
-                <Phone className="w-4 h-4" />
-                <span>Phone Number</span>
-              </Label>
+              <Label htmlFor="phone">Phone Number</Label>
               <Input
                 id="phone"
                 name="phone"
@@ -192,10 +190,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="flex items-center space-x-2">
-                <Lock className="w-4 h-4" />
-                <span>Password</span>
-              </Label>
+              <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -224,10 +219,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="flex items-center space-x-2">
-                <Lock className="w-4 h-4" />
-                <span>Confirm Password</span>
-              </Label>
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
               <div className="relative">
                 <Input
                   id="confirmPassword"
@@ -260,22 +252,40 @@ export default function RegisterPage() {
           </CardContent>
 
           <div className="px-6 pb-6">
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating Account...
-                </>
-              ) : (
-                'Create Account'
+            <div className="flex flex-col space-y-4 pt-2">
+              <Button
+                type="submit"
+                className="w-full bg-noir hover:bg-noir-light text-black"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating Account...
+                  </>
+                ) : (
+                  'Create Account'
+                )}
+              </Button>
+              {passwordError && (
+                <p className="text-red-500 text-sm text-center">
+                  {passwordError}
+                </p>
               )}
-            </Button>
-
-            <div className="text-sm text-center mt-4">
-              Already have an account?{' '}
-              <Link to="/organizer/login" className="font-medium text-primary hover:underline">
-                Sign in
-              </Link>
+              <div className="text-sm text-center">
+                Already have an account?{' '}
+                <Link to="/organizer/login" className="font-medium text-primary hover:underline">
+                  Sign in
+                </Link>
+              </div>
+              <div className="text-center pt-2">
+                <Link 
+                  to="/" 
+                  className="text-sm font-medium text-gray-600 hover:text-primary transition-colors"
+                >
+                  Go Back to Homepage
+                </Link>
+              </div>
             </div>
           </div>
         </form>

@@ -115,8 +115,9 @@ interface AestheticCategoriesProps {
 
 const AestheticCategories = ({ onAestheticChange, selectedAesthetic }: AestheticCategoriesProps) => {
   return (
-    <section className="py-16 bg-black">
-      <div className="container mx-auto px-4">
+    <section className="py-16 bg-black relative border-t-4 border-yellow-300">
+      <div className="absolute inset-0 bg-cover bg-center opacity-80" style={{ backgroundImage: 'url(/backgroundwallpaper/byblosbackground.png)' }} />
+      <div className="container mx-auto px-4 relative z-10">
         <div className="text-center mb-12">
           <h2 className="font-serif text-4xl md:text-5xl font-bold text-yellow-300 mb-4">
             Choose Your Aesthetic
@@ -174,6 +175,7 @@ const AestheticCategories = ({ onAestheticChange, selectedAesthetic }: Aesthetic
           ))}
         </div>
       </div>
+      <div className="absolute inset-0 bg-black/70 -z-10" />
     </section>
   );
 };
