@@ -37,7 +37,7 @@ export function ProductCard({ product, seller }: ProductCardProps) {
   };
 
   return (
-    <Card className={`group relative overflow-hidden transition-all duration-300 hover:shadow-lg ${isSold ? 'opacity-80 hover:opacity-80 border-2 border-red-500 bg-red-50' : 'hover:shadow-xl'}`}>
+    <Card className={`group relative overflow-hidden transition-all duration-300 hover:shadow-lg ${isSold ? 'opacity-80 hover:opacity-80 border-2 border-red-500 bg-gray-900' : 'hover:shadow-xl bg-gray-900 text-white'}`}>
       {/* SOLD Badge */}
       {isSold && (
         <div className="absolute top-2 left-2 z-10">
@@ -78,10 +78,10 @@ export function ProductCard({ product, seller }: ProductCardProps) {
             )}
           </div>
         ) : (
-          <div className="w-full h-64 flex items-center justify-center bg-gray-50 relative">
-            <ImageIcon className={cn("h-16 w-16", isSold ? 'text-gray-400' : 'text-gray-300')} />
+          <div className="w-full h-64 flex items-center justify-center bg-gray-800 relative">
+            <ImageIcon className={cn("h-16 w-16", isSold ? 'text-gray-600' : 'text-gray-600')} />
             {isSold && (
-              <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
                 <span className="bg-red-600 text-white px-4 py-2 rounded-full text-sm font-bold">
                   SOLD
                 </span>
@@ -96,28 +96,28 @@ export function ProductCard({ product, seller }: ProductCardProps) {
       <div className="p-4">
         <div className="flex justify-between items-start mb-2">
           <div className="flex-1">
-            <h3 className="font-medium text-gray-900 line-clamp-2 h-12">
+            <h3 className="font-medium text-white line-clamp-2 h-12">
               {product.name}
             </h3>
-            <p className="text-sm text-gray-500">By {displaySellerName}</p>
+            <p className="text-sm text-gray-300">By {displaySellerName}</p>
             {sellerLocation && (
-              <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
+              <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
                 <MapPin className="h-3 w-3" />
                 <span>{sellerLocation}</span>
               </div>
             )}
             {product.description && (
-              <p className="text-sm text-gray-600 mt-2 line-clamp-2">
+              <p className="text-sm text-gray-300 mt-2 line-clamp-2">
                 {product.description}
               </p>
             )}
           </div>
           <div className="text-right">
-            <p className="text-lg font-bold text-gray-900">
+            <p className="text-lg font-bold text-yellow-300">
               {formatCurrency(product.price)}
             </p>
             {isSold && (
-              <p className="text-xs text-red-600 font-medium">
+              <p className="text-xs text-red-400 font-medium">
                 {product.soldAt ? `Sold on ${new Date(product.soldAt).toLocaleDateString()}` : 'Sold'}
               </p>
             )}
@@ -130,7 +130,7 @@ export function ProductCard({ product, seller }: ProductCardProps) {
               <Button
                 variant="outline"
                 size="sm"
-                className="flex items-center gap-1 text-sm"
+                className="flex items-center gap-1 text-sm bg-gray-800 text-white border-gray-600 hover:bg-gray-700 hover:text-white"
                 onClick={(e) => {
                   e.stopPropagation();
                   if (!hasContactInfo) {
@@ -143,21 +143,21 @@ export function ProductCard({ product, seller }: ProductCardProps) {
                 <span>Contact</span>
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="bg-gray-900 border-gray-700 text-white">
               <DialogHeader>
-                <DialogTitle>Contact Seller</DialogTitle>
+                <DialogTitle className="text-white">Contact Seller</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4">
+              <div className="space-y-4 p-2">
                 <div className="flex items-center gap-2">
-                  <User className="h-5 w-5 text-gray-500" />
-                  <span className="font-medium">{displaySellerName}</span>
+                  <User className="h-5 w-5 text-yellow-300" />
+                  <span className="font-medium text-white">{displaySellerName}</span>
                 </div>
                 {displaySeller?.phone && (
                   <div className="flex items-center gap-2">
-                    <Phone className="h-5 w-5 text-gray-500" />
+                    <Phone className="h-5 w-5 text-yellow-300" />
                     <a
                       href={`tel:${displaySeller.phone}`}
-                      className="text-blue-600 hover:underline"
+                      className="text-yellow-300 hover:underline"
                     >
                       {displaySeller.phone}
                     </a>
@@ -165,10 +165,10 @@ export function ProductCard({ product, seller }: ProductCardProps) {
                 )}
                 {displaySeller?.email && (
                   <div className="flex items-center gap-2">
-                    <Mail className="h-5 w-5 text-gray-500" />
+                    <Mail className="h-5 w-5 text-yellow-300" />
                     <a
                       href={`mailto:${displaySeller.email}`}
-                      className="text-blue-600 hover:underline"
+                      className="text-yellow-300 hover:underline"
                     >
                       {displaySeller.email}
                     </a>
@@ -176,12 +176,12 @@ export function ProductCard({ product, seller }: ProductCardProps) {
                 )}
                 {displaySeller?.website && (
                   <div className="flex items-center gap-2">
-                    <Globe className="h-5 w-5 text-gray-500" />
+                    <Globe className="h-5 w-5 text-yellow-300" />
                     <a
                       href={displaySeller.website.startsWith('http') ? displaySeller.website : `https://${displaySeller.website}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
+                      className="text-yellow-300 hover:underline"
                     >
                       {displaySeller.website.replace(/^https?:\/\//, '')}
                     </a>
@@ -195,7 +195,7 @@ export function ProductCard({ product, seller }: ProductCardProps) {
 
       {/* Image Preview Dialog */}
       <Dialog open={isImageDialogOpen} onOpenChange={setIsImageDialogOpen}>
-        <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 overflow-hidden">
+        <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 overflow-hidden bg-black border-gray-700">
           <div className="relative w-full h-full">
             <button
               onClick={() => setIsImageDialogOpen(false)}

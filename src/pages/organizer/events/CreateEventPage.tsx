@@ -107,7 +107,7 @@ export default function CreateEventPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border p-6">
+      <div className="bg-black rounded-lg shadow-sm border p-6">
         <EventForm onSubmit={handleSubmit} isSubmitting={isSubmitting} />
       </div>
     </div>

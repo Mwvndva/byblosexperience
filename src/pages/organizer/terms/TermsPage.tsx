@@ -13,7 +13,7 @@ export default function TermsPage() {
       </div>
 
       <div className="prose max-w-none">
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <div className="bg-black p-6 rounded-lg shadow-sm border">
           <h2 className="text-xl font-semibold mb-4">📜 Byblos Experience – Organizer Terms & Conditions (Kenya)</h2>
           <p className="mb-6">
             These Terms & Conditions ("Agreement") govern your use of the Byblos Experience platform as an event organizer in Kenya. 

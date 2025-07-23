@@ -181,7 +181,7 @@ export function EventForm({ defaultValues, onSubmit, isSubmitting }: EventFormPr
             <Input
               id="title"
               {...register('title')}
-              className={errors.title ? 'border-red-500' : ''}
+              className={`${errors.title ? 'border-red-500' : ''} text-black`}
             />
             {errors.title && (
               <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
@@ -194,7 +194,7 @@ export function EventForm({ defaultValues, onSubmit, isSubmitting }: EventFormPr
               id="description"
               rows={4}
               {...register('description')}
-              className={errors.description ? 'border-red-500' : ''}
+              className={`${errors.description ? 'border-red-500' : ''} text-black`}
             />
             {errors.description && (
               <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
@@ -244,7 +244,7 @@ export function EventForm({ defaultValues, onSubmit, isSubmitting }: EventFormPr
                           setValue('startDate', date);
                         }
                       }}
-                      className="w-full"
+                      className="w-full text-black"
                     />
                   </div>
                 </PopoverContent>
@@ -296,7 +296,7 @@ export function EventForm({ defaultValues, onSubmit, isSubmitting }: EventFormPr
                           setValue('endDate', date);
                         }
                       }}
-                      className="w-full"
+                      className="w-full text-black"
                     />
                   </div>
                 </PopoverContent>
@@ -313,7 +313,7 @@ export function EventForm({ defaultValues, onSubmit, isSubmitting }: EventFormPr
               <Input
                 id="venue"
                 {...register('venue')}
-                className={errors.venue ? 'border-red-500' : ''}
+                className={`${errors.venue ? 'border-red-500' : ''} text-black`}
               />
               {errors.venue && (
                 <p className="mt-1 text-sm text-red-600">{errors.venue.message}</p>
@@ -325,7 +325,7 @@ export function EventForm({ defaultValues, onSubmit, isSubmitting }: EventFormPr
                 id="location"
                 placeholder="123 Main St, City, Country"
                 {...register('location')}
-                className={errors.location ? 'border-red-500' : ''}
+                className={`${errors.location ? 'border-red-500' : ''} text-black`}
               />
               {errors.location && (
                 <p className="mt-1 text-sm text-red-600">{errors.location.message}</p>
@@ -343,6 +343,7 @@ export function EventForm({ defaultValues, onSubmit, isSubmitting }: EventFormPr
               variant="outline"
               size="sm"
               onClick={addTicketType}
+              className="bg-white text-black border-gray-300 hover:bg-white hover:text-black hover:border-gray-400"
             >
               Add Ticket Type
             </Button>
@@ -372,6 +373,7 @@ export function EventForm({ defaultValues, onSubmit, isSubmitting }: EventFormPr
                     id={`ticketTypes.${index}.name`}
                     {...register(`ticketTypes.${index}.name` as const)}
                     defaultValue={ticket.name}
+                    className="text-black"
                   />
                   {errors.ticketTypes?.[index]?.name && (
                     <p className="mt-1 text-sm text-red-600">
@@ -398,12 +400,13 @@ export function EventForm({ defaultValues, onSubmit, isSubmitting }: EventFormPr
                           return isNaN(num) ? 0 : Math.max(0, num);
                         },
                       })}
-                      defaultValue={ticket.price || 0}
-                      className="pl-14 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      defaultValue={ticket.price || ''}
+                      placeholder="0"
                       min="0"
                       step="1"
+                      className="text-black pl-12"
                       onKeyDown={(e) => {
-                        // Allow: backspace, delete, tab, escape, enter
+                        // Allow: backspace, delete, tab, escape, enter, numbers
                         if (
                           [46, 8, 9, 27, 13].includes(e.keyCode) || 
                           // Allow: Ctrl+A, Command+A
@@ -412,18 +415,17 @@ export function EventForm({ defaultValues, onSubmit, isSubmitting }: EventFormPr
                           (e.keyCode === 67 && (e.ctrlKey === true || e.metaKey === true)) || 
                           // Allow: Ctrl+V, Command+V
                           (e.keyCode === 86 && (e.ctrlKey === true || e.metaKey === true)) || 
-                          // Allow: Ctrl+X, Command+X
-                          (e.keyCode === 88 && (e.ctrlKey === true || e.metaKey === true)) || 
                           // Allow: home, end, left, right
-                          (e.keyCode >= 35 && e.keyCode <= 39)
+                          (e.keyCode >= 35 && e.keyCode <= 39) ||
+                          // Allow: 0-9 and numpad 0-9
+                          (e.keyCode >= 48 && e.keyCode <= 57) ||
+                          (e.keyCode >= 96 && e.keyCode <= 105)
                         ) {
                           // Let it happen, don't do anything
                           return;
                         }
-                        // Ensure that it is a number and stop the keypress if not
-                        if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
-                          e.preventDefault();
-                        }
+                        // Prevent the rest
+                        e.preventDefault();
                       }}
                     />
                   </div>
@@ -447,35 +449,12 @@ export function EventForm({ defaultValues, onSubmit, isSubmitting }: EventFormPr
                         // Convert empty string to 1, otherwise parse as integer
                         if (value === '') return 1;
                         const num = parseInt(value, 10);
-                        return isNaN(num) ? 1 : Math.max(1, num); // Ensure minimum 1
+                        return isNaN(num) ? 1 : Math.max(1, num);
                       },
                     })}
-                    defaultValue={ticket.quantity || 1}
-                    min="1"
-                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    onKeyDown={(e) => {
-                      // Allow: backspace, delete, tab, escape, enter
-                      if (
-                        [46, 8, 9, 27, 13].includes(e.keyCode) || 
-                        // Allow: Ctrl+A, Command+A
-                        (e.keyCode === 65 && (e.ctrlKey === true || e.metaKey === true)) || 
-                        // Allow: Ctrl+C, Command+C
-                        (e.keyCode === 67 && (e.ctrlKey === true || e.metaKey === true)) || 
-                        // Allow: Ctrl+V, Command+V
-                        (e.keyCode === 86 && (e.ctrlKey === true || e.metaKey === true)) || 
-                        // Allow: Ctrl+X, Command+X
-                        (e.keyCode === 88 && (e.ctrlKey === true || e.metaKey === true)) || 
-                        // Allow: home, end, left, right
-                        (e.keyCode >= 35 && e.keyCode <= 39)
-                      ) {
-                        // Let it happen, don't do anything
-                        return;
-                      }
-                      // Ensure that it is a number and stop the keypress if not
-                      if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
-                        e.preventDefault();
-                      }
-                    }}
+                    defaultValue={ticket.quantity || 100}
+                    min={1}
+                    className="text-black"
                   />
                   {errors.ticketTypes?.[index]?.quantity && (
                     <p className="mt-1 text-sm text-red-600">
@@ -488,10 +467,13 @@ export function EventForm({ defaultValues, onSubmit, isSubmitting }: EventFormPr
                   <Label htmlFor={`ticketTypes.${index}.description`}>
                     Description (Optional)
                   </Label>
-                  <Input
+                  <Textarea
                     id={`ticketTypes.${index}.description`}
+                    rows={2}
                     {...register(`ticketTypes.${index}.description` as const)}
                     defaultValue={ticket.description}
+                    placeholder="Description (optional)"
+                    className="text-black"
                   />
                 </div>
               </div>

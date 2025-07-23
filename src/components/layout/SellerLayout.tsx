@@ -61,7 +61,7 @@ export function SellerLayout({ children }: SellerLayoutProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-900 text-white flex flex-col">
       {/* Main layout */}
       <div className="flex flex-1">
         {/* Mobile menu button */}
@@ -82,7 +82,7 @@ export function SellerLayout({ children }: SellerLayoutProps) {
         {isAuthenticated && (
           <div
             className={cn(
-              'fixed inset-0 bg-gray-900 bg-opacity-50 z-40 md:hidden',
+              'fixed inset-0 bg-black bg-opacity-70 z-40 md:hidden',
               isMobileMenuOpen ? 'block' : 'hidden'
             )}
             onClick={() => setIsMobileMenuOpen(false)}
@@ -93,7 +93,7 @@ export function SellerLayout({ children }: SellerLayoutProps) {
         {isAuthenticated && (
           <div
             className={cn(
-              'fixed inset-y-0 left-0 w-64 bg-white shadow-lg z-50 md:hidden',
+              'fixed inset-y-0 left-0 w-64 bg-gray-800 shadow-lg z-50 md:hidden',
               isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full',
               'transition-transform duration-300'
             )}
@@ -105,8 +105,8 @@ export function SellerLayout({ children }: SellerLayoutProps) {
                     key={item.name}
                     to={item.href}
                     className={cn(
-                      'flex items-center space-x-2 text-sm font-medium rounded-md px-3 py-2 text-gray-700 hover:bg-gray-50 mb-2',
-                      item.current && 'bg-gray-100 text-indigo-600'
+                      'flex items-center space-x-2 text-sm font-medium rounded-md px-3 py-2 text-white hover:bg-gray-700 hover:text-yellow-300 mb-2 transition-colors',
+                      item.current && 'bg-gray-700 text-yellow-300'
                     )}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
@@ -121,7 +121,7 @@ export function SellerLayout({ children }: SellerLayoutProps) {
 
         {/* Desktop sidebar */}
         {isAuthenticated && (
-          <div className="hidden md:flex w-64 flex-col bg-white shadow-lg">
+          <div className="hidden md:flex w-64 flex-col bg-gray-800 shadow-lg">
             <div className="flex-1 flex flex-col min-h-0">
               <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
                 <div className="px-3">
@@ -131,8 +131,8 @@ export function SellerLayout({ children }: SellerLayoutProps) {
                         key={item.name}
                         to={item.href}
                         className={cn(
-                          'flex items-center space-x-2 text-sm font-medium rounded-md px-3 py-2 text-gray-700 hover:bg-gray-50 mb-2',
-                          item.current && 'bg-gray-100 text-indigo-600'
+                          'flex items-center space-x-2 text-sm font-medium rounded-md px-3 py-2 text-white hover:bg-gray-700 hover:text-yellow-300 mb-2 transition-colors',
+                          item.current && 'bg-gray-700 text-yellow-300'
                         )}
                       >
                         <item.icon className="h-4 w-4" />
@@ -150,12 +150,12 @@ export function SellerLayout({ children }: SellerLayoutProps) {
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Header */}
           {!isLoginPage && !isRegisterPage && (
-            <header className="bg-white shadow">
+            <header className="bg-gray-800 shadow border-b border-gray-700">
               <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
                 <div className="flex justify-end items-center">
                   <button
                     onClick={handleLogout}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    className="inline-flex items-center px-4 py-2 border border-yellow-300 text-sm font-medium rounded-md shadow-sm text-yellow-300 bg-transparent hover:bg-yellow-900/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-colors"
                   >
                     <LogOut className="h-4 w-4 mr-2" />
                     Log out
@@ -176,14 +176,15 @@ export function SellerLayout({ children }: SellerLayoutProps) {
 
       {/* Mobile footer */}
       {!isLoginPage && !isRegisterPage && (
-        <footer className="md:hidden border-t border-gray-200">
+        <footer className="md:hidden border-t border-gray-700 bg-gray-800">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center py-4">
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-500"> 2025 Byblos Experience</span>
+                <span className="text-sm text-gray-400"> 2025 Byblos Experience</span>
               </div>
               <Button
                 variant="ghost"
+                className="text-gray-300 hover:bg-gray-700 hover:text-white"
                 size="icon"
                 onClick={handleLogout}
               >

@@ -195,7 +195,7 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ children }) => {
         
         <div className="grid gap-4 md:grid-cols-3">
           {[1, 2, 3].map((i) => (
-            <Card key={i}>
+            <Card key={i} className="bg-gray-800 border-gray-700">
               <CardHeader className="pb-2">
                 <Skeleton className="h-4 w-24" />
               </CardHeader>
@@ -250,14 +250,14 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ children }) => {
 
   // Main dashboard UI
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-6 bg-gray-900 min-h-screen text-white">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold tracking-tight">Seller Dashboard</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-white">Seller Dashboard</h1>
         <div className="flex items-center space-x-2">
           <Button
             variant="outline"
             onClick={fetchData}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
             disabled={isLoading}
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -265,7 +265,7 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ children }) => {
           </Button>
           <Link 
             to="/" 
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+            className="inline-flex items-center justify-center rounded-md border border-gray-600 bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 transition-colors"
           >
             <svg 
               xmlns="http://www.w3.org/2000/svg" 
@@ -286,64 +286,64 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ children }) => {
 
       {/* Analytics Overview */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
+        <Card className="bg-gray-800 border-gray-700">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-gray-300">Total Products</CardTitle>
+            <Package className="h-4 w-4 text-yellow-300" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analytics.totalProducts}</div>
-            <p className="text-xs text-muted-foreground">Products in your store</p>
+            <div className="text-2xl font-bold text-white">{analytics.totalProducts}</div>
+            <p className="text-xs text-gray-400">Products in your store</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gray-800 border-gray-700">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Sales</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-gray-300">Total Sales</CardTitle>
+            <DollarSign className="h-4 w-4 text-yellow-300" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(analytics.totalRevenue)}</div>
-            <p className="text-xs text-muted-foreground">Total revenue generated</p>
+            <div className="text-2xl font-bold text-white">{formatCurrency(analytics.totalRevenue)}</div>
+            <p className="text-xs text-gray-400">Total revenue generated</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gray-800 border-gray-700">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Items Sold</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-gray-300">Items Sold</CardTitle>
+            <CheckCircle className="h-4 w-4 text-yellow-300" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalSold}</div>
-            <p className="text-xs text-muted-foreground">Products sold to date</p>
+            <div className="text-2xl font-bold text-white">{totalSold}</div>
+            <p className="text-xs text-gray-400">Products sold to date</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Recent Products */}
-      <Card>
+      <Card className="bg-gray-800 border-gray-700">
         <CardHeader>
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle>Recent Products</CardTitle>
-              <CardDescription>Your most recently added products</CardDescription>
+              <CardTitle className="text-white">Recent Products</CardTitle>
+              <CardDescription className="text-gray-300">Your most recently added products</CardDescription>
             </div>
             <Button 
               size="sm" 
               onClick={() => navigate('/seller/add-product')}
-              className="gap-2"
+              className="gap-2 bg-yellow-300 text-black hover:bg-yellow-200"
             >
               <Plus className="h-4 w-4" />
               Add Product
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="bg-gray-800">
           {products.length > 0 ? (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {products.slice(0, 3).map((product) => (
-                <div key={product.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                  <div className="aspect-square bg-gray-100 rounded-md overflow-hidden mb-3">
+                <div key={product.id} className="border border-gray-700 rounded-lg p-4 hover:shadow-lg transition-all hover:border-yellow-300 bg-gray-800">
+                  <div className="aspect-square bg-gray-700 rounded-md overflow-hidden mb-3">
                     {product.image_url || product.imageUrl ? (
                       <img
                         src={product.image_url || product.imageUrl}
@@ -351,20 +351,20 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ children }) => {
                         className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gray-50">
-                        <Package className="h-12 w-12 text-gray-300" />
+                      <div className="w-full h-full flex items-center justify-center bg-gray-600">
+                        <Package className="h-12 w-12 text-gray-400" />
                       </div>
                     )}
                   </div>
-                  <h3 className="font-medium text-gray-900 line-clamp-1">{product.name}</h3>
-                  <p className="text-sm text-gray-500 mb-1">{product.aesthetic}</p>
+                  <h3 className="font-medium text-white line-clamp-1">{product.name}</h3>
+                  <p className="text-sm text-gray-300 mb-1">{product.aesthetic}</p>
                   <div className="flex justify-between items-center mt-2">
-                    <span className="text-sm font-medium text-gray-900">
+                    <span className="text-sm font-medium text-white">
                       {formatCurrency(product.price)}
                     </span>
                     <Badge 
                       variant={product.status === 'sold' || product.isSold ? 'destructive' : 'outline'}
-                      className="text-xs"
+                      className="text-xs border-gray-600 text-white"
                     >
                       {product.status === 'sold' || product.isSold ? 'Sold' : 'Available'}
                     </Badge>
@@ -374,8 +374,8 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ children }) => {
             </div>
           ) : (
             <div className="text-center py-12 space-y-4">
-              <Package className="h-12 w-12 mx-auto text-gray-300" />
-              <p className="text-gray-500">No products found</p>
+              <Package className="h-12 w-12 mx-auto text-gray-400" />
+              <p className="text-gray-300">No products found</p>
               <p className="text-sm text-gray-400">Add your first product to get started</p>
               <Button 
                 onClick={() => navigate('/seller/add-product')}
@@ -391,15 +391,15 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ children }) => {
 
       {/* Quick Actions */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
+        <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Common tasks for your store</CardDescription>
+            <CardTitle className="text-white">Quick Actions</CardTitle>
+            <CardDescription className="text-gray-300">Common tasks for your store</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <Button 
               variant="outline" 
-              className="w-full justify-start gap-2"
+              className="w-full justify-start gap-2 border-gray-600 text-black hover:bg-gray-700 hover:text-white"
               onClick={() => navigate('/seller/products')}
             >
               <Package className="h-4 w-4" />
@@ -407,7 +407,7 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ children }) => {
             </Button>
             <Button 
               variant="outline" 
-              className="w-full justify-start gap-2"
+              className="w-full justify-start gap-2 border-gray-600 text-black hover:bg-gray-700 hover:text-white"
               onClick={() => navigate('/seller/orders')}
             >
               <ShoppingCart className="h-4 w-4" />
@@ -415,7 +415,7 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ children }) => {
             </Button>
             <Button 
               variant="outline" 
-              className="w-full justify-start gap-2"
+              className="w-full justify-start gap-2 border-gray-600 text-black hover:bg-gray-700 hover:text-white"
               onClick={() => navigate('/seller/settings')}
             >
               <Settings className="h-4 w-4" />
@@ -425,28 +425,28 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ children }) => {
         </Card>
 
         {/* Recent Activity */}
-        <Card>
+        <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Latest updates from your store</CardDescription>
+            <CardTitle className="text-white">Recent Activity</CardTitle>
+            <CardDescription className="text-gray-300">Latest updates from your store</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="bg-gray-800">
             {products.length > 0 ? (
-              <div className="space-y-4">
+              <div className="space-y-4 bg-gray-800">
                 {products.slice(0, 3).map((product) => (
                   <div key={product.id} className="flex items-start gap-3">
-                    <div className="flex-shrink-0 h-10 w-10 rounded-md bg-gray-100 flex items-center justify-center">
-                      <Package className="h-5 w-5 text-gray-400" />
+                    <div className="flex-shrink-0 h-10 w-10 rounded-md bg-gray-700 flex items-center justify-center">
+                      <Package className="h-5 w-5 text-yellow-300" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium">
+                      <p className="text-sm font-medium text-white">
                         {product.name}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-400">
                         Added on {new Date(product.createdAt).toLocaleDateString()}
                       </p>
                     </div>
-                    <Badge variant="outline" className="text-xs">
+                    <Badge variant="outline" className="text-xs border-gray-600 text-white">
                       {product.status || 'Active'}
                     </Badge>
                   </div>
@@ -454,7 +454,7 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ children }) => {
               </div>
             ) : (
               <div className="text-center py-8">
-                <p className="text-sm text-gray-500">No recent activity</p>
+                <p className="text-sm text-gray-400">No recent activity</p>
               </div>
             )}
           </CardContent>

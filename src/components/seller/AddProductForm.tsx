@@ -432,11 +432,11 @@ export const AddProductForm = ({ onSuccess }: { onSuccess: () => void }) => {
                 image: null,
                 image_url: '',
                 aesthetic: 'noir',
-
               });
               setImagePreview('');
             }}
             disabled={isLoading}
+            className="border-yellow-300 text-yellow-300 hover:bg-black hover:text-yellow-300 hover:border-yellow-300 transition-colors duration-200"
           >
             Reset
           </Button>

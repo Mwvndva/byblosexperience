@@ -220,6 +220,7 @@ export default function EventsListPage() {
             size="sm" 
             onClick={handleRefresh}
             disabled={isRefreshing}
+            className="bg-white text-black border-gray-300 hover:bg-white hover:text-black hover:border-gray-400"
           >
             {isRefreshing ? (
               <Loader2 className="h-4 w-4 animate-spin mr-2" />

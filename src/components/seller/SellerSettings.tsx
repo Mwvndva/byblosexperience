@@ -53,21 +53,21 @@ function SellerSettings() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label>Full Name</Label>
-              <div className="text-sm py-2 px-3 border rounded-md bg-gray-50">
+              <div className="text-sm py-2 px-3 border rounded-md bg-black">
                 {profile.fullName || 'Not provided'}
               </div>
             </div>
 
             <div className="space-y-2">
               <Label>Email</Label>
-              <div className="text-sm py-2 px-3 border rounded-md bg-gray-50">
+              <div className="text-sm py-2 px-3 border rounded-md bg-black">
                 {profile.email || 'Not provided'}
               </div>
             </div>
 
             <div className="space-y-2">
               <Label>Phone Number</Label>
-              <div className="text-sm py-2 px-3 border rounded-md bg-gray-50">
+              <div className="text-sm py-2 px-3 border rounded-md bg-black">
                 {profile.phone || 'Not provided'}
               </div>
             </div>

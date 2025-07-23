@@ -243,6 +243,7 @@ export function ProductsList({ products, onDelete, onEdit, onStatusUpdate, onRef
                         size="sm"
                         onClick={() => handleStatusUpdate(product.id, product.status === 'sold' ? 'available' : 'sold')}
                         disabled={updatingId === product.id}
+                        className={`${product.status === 'sold' ? 'bg-yellow-300 text-black' : 'bg-black text-yellow-300'} border-yellow-300`}
                       >
                         {updatingId === product.id ? (
                           <Loader2 className="h-4 w-4 animate-spin mr-1" />

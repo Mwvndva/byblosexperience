@@ -366,10 +366,10 @@ const DashboardPage = () => {
         {/* Upcoming Events */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">Upcoming Events</h2>
+            <h2 className="text-xl font-semibold text-white">Upcoming Events</h2>
             <Link 
               to="/organizer/events" 
-              className="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors duration-200"
+              className="text-sm font-medium text-indigo-600 hover:text-white transition-colors duration-200"
             >
               View all
             </Link>
@@ -456,7 +456,7 @@ const DashboardPage = () => {
         {/* Recent Sales */}
         <div className="space-y-4">
           <div className="flex items-center">
-            <h2 className="text-xl font-semibold text-gray-900">Recent Sales</h2>
+            <h2 className="text-xl font-semibold text-white">Recent Sales</h2>
           </div>
           
           {recentSales.length > 0 ? (

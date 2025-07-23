@@ -46,81 +46,58 @@ export default function SettingsPage() {
   }, [organizer]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Profile Information</h1>
-        <p className="text-muted-foreground">View your account information.</p>
+        <h2 className="text-lg font-medium">Profile Information</h2>
+        <p className="text-sm text-gray-500">Your account's profile information.</p>
       </div>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Account Details</CardTitle>
-          <CardDescription>
-            Your profile information
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="full_name">Full Name</Label>
-                <Input
-                  id="full_name"
-                  value={profileForm.getValues('full_name') || ''}
-                  readOnly
-                  className="bg-gray-100"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={profileForm.getValues('email') || ''}
-                  readOnly
-                  className="bg-gray-100"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={profileForm.getValues('phone') || 'Not provided'}
-                  readOnly
-                  className="bg-gray-100"
-                />
-              </div>
+
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label>Full Name</Label>
+            <div className="text-sm py-2 px-3 border rounded-md bg-black text-white">
+              {profileForm.getValues('full_name') || 'Not provided'}
             </div>
           </div>
-        </CardContent>
-      </Card>
+
+          <div className="space-y-2">
+            <Label>Email</Label>
+            <div className="text-sm py-2 px-3 border rounded-md bg-black text-white">
+              {profileForm.getValues('email') || 'Not provided'}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Phone Number</Label>
+            <div className="text-sm py-2 px-3 border rounded-md bg-black text-white">
+              {profileForm.getValues('phone') || 'Not provided'}
+            </div>
+          </div>
+        </div>
+      </div>
       
-      <Separator className="my-6" />
-      
-      <Card className="border-destructive">
-        <CardHeader>
-          <CardTitle className="text-destructive">Danger Zone</CardTitle>
-          <CardDescription>
-            These actions are irreversible. Proceed with caution.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between rounded-md border border-destructive/20 p-4">
+      <div className="space-y-6 pt-6 border-t border-gray-700">
+        <div className="space-y-2">
+          <h3 className="text-lg font-medium text-yellow-300">Danger Zone</h3>
+          <p className="text-sm text-gray-400">These actions are irreversible. Proceed with caution.</p>
+          
+          <div className="flex items-center justify-between rounded-md border border-yellow-300/20 p-4 mt-4">
             <div>
-              <h4 className="font-medium">Delete Account</h4>
-              <p className="text-sm text-muted-foreground">
+              <h4 className="font-medium text-white">Delete Account</h4>
+              <p className="text-sm text-gray-400">
                 Permanently delete your account and all associated data.
               </p>
             </div>
-            <Button variant="destructive" disabled>
+            <Button 
+              variant="outline" 
+              className="border-red-500 text-red-500 hover:bg-red-500/10 hover:text-red-500"
+            >
               Delete Account
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

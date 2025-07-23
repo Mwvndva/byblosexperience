@@ -199,11 +199,11 @@ const ProductGrid = ({ selectedAesthetic }: ProductGridProps) => {
   // Show a message when no aesthetic is selected
   if (!selectedAesthetic) {
     return (
-      <div className="text-center py-16 px-4">
-        <h3 className="text-2xl font-serif font-bold text-gray-800 mb-4">
+      <div className="text-center py-16 px-4 bg-gray-800 rounded-lg">
+        <h3 className="text-2xl font-serif font-bold text-white mb-4">
           Browse Our Collections
         </h3>
-        <p className="text-gray-600 max-w-2xl mx-auto">
+        <p className="text-gray-300 max-w-2xl mx-auto">
           Please select an aesthetic from above to view the available products.
         </p>
       </div>
@@ -246,13 +246,13 @@ const ProductGrid = ({ selectedAesthetic }: ProductGridProps) => {
   // If a specific aesthetic is selected, only show that section
   if (selectedAesthetic !== 'all') {
     return (
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-black">
         <div className="container mx-auto px-4">
           <div className="mb-12">
-            <h2 className="font-serif text-3xl font-bold text-noir mb-2 capitalize">
+            <h2 className="font-serif text-3xl font-bold text-white mb-2 capitalize">
               {selectedAesthetic.replace(/-/g, ' ')} Collection
             </h2>
-            <p className="text-gray-600">
+            <p className="text-white">
               {filteredProducts.length} curated pieces available
             </p>
           </div>
