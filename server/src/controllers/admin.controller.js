@@ -1,0 +1,669 @@
+import jwt from 'jsonwebtoken';
+import { pool } from '../config/database.js';
+import AppError from '../utils/appError.js';
+import { promisify } from 'util';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+
+
+// Admin login
+const adminLogin = async (req, res, next) => {
+  try {
+    const { pin } = req.body;
+
+    // 1) Check if pin exists
+    if (!pin) {
+      return next(new AppError('Please provide a PIN', 400));
+    }
+
+    // 2) Check if pin is correct
+    if (pin !== process.env.ADMIN_PIN) {
+      return next(new AppError('Incorrect PIN', 401));
+    }
+
+    // 3) If everything is ok, send token to client
+    const token = jwt.sign({ id: 'admin' }, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRES_IN,
+    });
+
+    // 4) Send response with token
+    res.status(200).json({
+      status: 'success',
+      message: 'Login successful',
+      data: { token }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    next(error);
+  }
+};
+
+// Middleware to protect admin routes
+const protect = async (req, res, next) => {
+  try {
+    // 1) Getting token and check if it's there
+    let token;
+    if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith('Bearer')
+    ) {
+      token = req.headers.authorization.split(' ')[1];
+    }
+
+    if (!token) {
+      return next(new AppError('You are not logged in! Please log in to get access.', 401));
+    }
+
+    // 2) Verification token
+    const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+
+    // 3) Check if user is admin
+    if (decoded.id !== 'admin') {
+      return next(new AppError('You do not have permission to perform this action', 403));
+    }
+
+    // 4) Add admin user to request
+    req.user = { 
+      id: 'admin', 
+      email: 'admin@byblos.com',
+      role: 'admin',
+      userType: 'admin'
+    };
+    
+    next();
+  } catch (error) {
+    console.error('Auth error:', error);
+    if (error.name === 'JsonWebTokenError') {
+      return next(new AppError('Invalid token. Please log in again!', 401));
+    }
+    if (error.name === 'TokenExpiredError') {
+      return next(new AppError('Your session has expired! Please log in again.', 401));
+    }
+    next(error);
+  }
+};
+
+// Get dashboard statistics
+const getDashboardStats = async (req, res, next) => {
+  console.log('Fetching dashboard stats...');
+  
+  try {
+    // Test database connection first
+    await pool.query('SELECT NOW()');
+    console.log('Database connection successful');
+    
+    // Get total counts with error handling
+    const getCount = async (table) => {
+      try {
+        const result = await pool.query(`SELECT COUNT(*) FROM ${table}`);
+        console.log(`${table} count:`, result.rows[0].count);
+        return parseInt(result.rows[0].count, 10);
+      } catch (error) {
+        console.error(`Error counting ${table}:`, error.message);
+        return 0;
+      }
+    };
+
+    // Get all counts in parallel
+    const [total_sellers, total_products, total_organizers, total_events] = await Promise.all([
+      getCount('sellers'),
+      getCount('products'),
+      getCount('organizers'),
+      getCount('events')
+    ]);
+
+    // Get recent records with error handling
+    const queryWithLogging = async (query, name) => {
+      try {
+        console.log(`Executing ${name} query...`);
+        const result = await pool.query(query);
+        console.log(`${name} query successful, found ${result.rows.length} rows`);
+        return result.rows;
+      } catch (error) {
+        console.error(`Error in ${name} query:`, error.message);
+        return [];
+      }
+    };
+
+    // Fetch recent activities (combine recent actions from different tables)
+    const recentActivities = [];
+    
+    // Add some mock recent activities since we don't have an activities table
+    recentActivities.push({
+      id: 1,
+      type: 'info',
+      message: 'System initialized',
+      timestamp: new Date().toISOString()
+    });
+
+    // Prepare response in the format expected by the frontend
+    const responseData = {
+      total_sellers,
+      total_products,
+      total_organizers,
+      total_events,
+      total_revenue: 0, // This would come from orders/transactions
+      monthly_growth: {
+        sellers: 0,
+        products: 0,
+        organizers: 0,
+        events: 0,
+        revenue: 0
+      },
+      recent_activities: recentActivities
+    };
+
+    console.log('Dashboard stats prepared:', JSON.stringify(responseData, null, 2));
+    
+    res.status(200).json({
+      status: 'success',
+      data: responseData
+    });
+  } catch (error) {
+    console.error('Critical error in getDashboardStats:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+      detail: error.detail
+    });
+    
+    // Return default values that match the expected structure
+    res.status(200).json({
+      status: 'success',
+      data: {
+        total_sellers: 0,
+        total_products: 0,
+        total_organizers: 0,
+        total_events: 0,
+        total_revenue: 0,
+        monthly_growth: {
+          sellers: 0,
+          products: 0,
+          organizers: 0,
+          events: 0,
+          revenue: 0
+        },
+        recent_activities: []
+      }
+    });
+  }
+};
+
+// Sellers management
+const getAllSellers = async (req, res, next) => {
+  try {
+    console.log('Fetching all sellers...');
+    const result = await pool.query(
+      'SELECT id, full_name as name, email, phone, status, created_at FROM sellers ORDER BY created_at DESC'
+    );
+    
+    console.log('Raw sellers data from database:', result.rows);
+    
+    const sellers = result.rows.map(seller => ({
+      ...seller,
+      status: seller.status || 'Active',
+      createdAt: seller.created_at
+    }));
+    
+    console.log('Processed sellers data:', sellers);
+    
+    res.status(200).json({
+      status: 'success',
+      results: result.rows.length,
+      data: sellers
+    });
+  } catch (error) {
+    console.error('Error getting sellers:', error);
+    next(error);
+  }
+};
+
+const getSellerById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      'SELECT id, full_name as name, email, status, created_at FROM sellers WHERE id = $1',
+      [id]
+    );
+    
+    if (result.rows.length === 0) {
+      return next(new AppError('No seller found with that ID', 404));
+    }
+    
+    const seller = result.rows[0];
+    res.status(200).json({
+      status: 'success',
+      data: {
+        ...seller,
+        status: seller.status || 'Active',
+        createdAt: seller.created_at
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateSellerStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    if (!['active', 'inactive', 'suspended', 'banned'].includes(status)) {
+      return next(new AppError('Invalid status value', 400));
+    }
+    
+    const result = await pool.query(
+      'UPDATE sellers SET status = $1 WHERE id = $2 RETURNING id, full_name as name, email, status',
+      [status, id]
+    );
+    
+    if (result.rows.length === 0) {
+      return next(new AppError('No seller found with that ID', 404));
+    }
+    
+    res.status(200).json({
+      status: 'success',
+      message: 'Seller status updated successfully',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Organizers management
+const getAllOrganizers = async (req, res, next) => {
+  try {
+    const result = await pool.query(
+      `SELECT o.id, o.full_name as name, o.email, o.phone, o.status, o.created_at,
+              COUNT(e.id) as events_count
+       FROM organizers o
+       LEFT JOIN events e ON o.id = e.organizer_id
+       GROUP BY o.id, o.full_name, o.email, o.phone, o.status, o.created_at
+       ORDER BY o.created_at DESC`
+    );
+    
+    res.status(200).json({
+      status: 'success',
+      results: result.rows.length,
+      data: result.rows.map(org => ({
+        ...org,
+        status: org.status || 'Active',
+        eventsCount: parseInt(org.events_count, 10) || 0,
+        createdAt: org.created_at
+      }))
+    });
+  } catch (error) {
+    console.error('Error getting organizers:', error);
+    next(error);
+  }
+};
+
+const getOrganizerById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      `SELECT o.id, o.full_name as name, o.email, o.phone, o.status, o.created_at,
+              COUNT(e.id) as events_count
+       FROM organizers o
+       LEFT JOIN events e ON o.id = e.organizer_id
+       WHERE o.id = $1
+       GROUP BY o.id, o.full_name, o.email, o.phone, o.status, o.created_at`,
+      [id]
+    );
+    
+    if (result.rows.length === 0) {
+      return next(new AppError('No organizer found with that ID', 404));
+    }
+    
+    const organizer = result.rows[0];
+    res.status(200).json({
+      status: 'success',
+      data: {
+        ...organizer,
+        status: organizer.status || 'Active',
+        eventsCount: parseInt(organizer.events_count, 10) || 0,
+        createdAt: organizer.created_at
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateOrganizerStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    if (!['active', 'inactive', 'suspended', 'banned'].includes(status)) {
+      return next(new AppError('Invalid status value', 400));
+    }
+    
+    const result = await pool.query(
+      'UPDATE organizers SET status = $1 WHERE id = $2 RETURNING id, full_name as name, email, status',
+      [status, id]
+    );
+    
+    if (result.rows.length === 0) {
+      return next(new AppError('No organizer found with that ID', 404));
+    }
+    
+    res.status(200).json({
+      status: 'success',
+      message: 'Organizer status updated successfully',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Events management
+const getAllEvents = async (req, res, next) => {
+  try {
+    const result = await pool.query(
+      `SELECT 
+        e.id, 
+        e.name as title, 
+        e.description, 
+        e.start_date, 
+        e.end_date, 
+        e.location, 
+        e.status, 
+        e.created_at, 
+        o.full_name as organizer_name,
+        (SELECT COUNT(*) FROM tickets WHERE event_id = e.id) as attendees_count,
+        COALESCE(
+          (SELECT SUM(tt.price) 
+           FROM tickets t
+           JOIN ticket_types tt ON t.ticket_type_id = tt.id
+           WHERE t.event_id = e.id),
+          0
+        ) as total_revenue
+       FROM events e
+       LEFT JOIN organizers o ON e.organizer_id = o.id
+       ORDER BY e.start_date DESC`
+    );
+    
+    res.status(200).json({
+      status: 'success',
+      results: result.rows.length,
+      data: result.rows.map(event => ({
+        ...event,
+        date: event.start_date,
+        status: event.status || 'upcoming',
+        attendees: parseInt(event.attendees_count, 10) || 0,
+        revenue: parseFloat(event.total_revenue) || 0,
+        createdAt: event.created_at
+      }))
+    });
+  } catch (error) {
+    console.error('Error getting events:', error);
+    // Return empty array if there's an error
+    res.status(200).json({
+      status: 'success',
+      results: 0,
+      data: []
+    });
+  }
+};
+
+const getEventById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      `SELECT e.*, o.full_name as organizer_name
+       FROM events e
+       JOIN organizers o ON e.organizer_id = o.id
+       WHERE e.id = $1`,
+      [id]
+    );
+    
+    if (result.rows.length === 0) {
+      return next(new AppError('No event found with that ID', 404));
+    }
+    
+    const event = result.rows[0];
+    res.status(200).json({
+      status: 'success',
+      data: {
+        ...event,
+        title: event.name,
+        date: event.start_date,
+        status: event.status || 'upcoming',
+        createdAt: event.created_at
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateEventStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    if (!['draft', 'published', 'cancelled', 'completed'].includes(status)) {
+      return next(new AppError('Invalid status value', 400));
+    }
+    
+    const result = await pool.query(
+      'UPDATE events SET status = $1 WHERE id = $2 RETURNING id, name as title, status',
+      [status, id]
+    );
+    
+    if (result.rows.length === 0) {
+      return next(new AppError('No event found with that ID', 404));
+    }
+    
+    res.status(200).json({
+      status: 'success',
+      message: 'Event status updated successfully',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get tickets for an event
+const getEventTickets = async (req, res, next) => {
+  try {
+    const { id: eventId } = req.params;
+
+    // 1) Get event details
+    const eventResult = await pool.query(
+      'SELECT id, name FROM events WHERE id = $1',
+      [eventId]
+    );
+
+    if (eventResult.rows.length === 0) {
+      return next(new AppError('No event found with that ID', 404));
+    }
+
+    // 2) Get all tickets for the event with ticket type information
+    const ticketsResult = await pool.query(
+      `SELECT 
+        t.id, 
+        t.ticket_number,
+        t.customer_name,
+        t.customer_email,
+        t.ticket_type_name,
+        t.price,
+        t.status,
+        t.created_at,
+        t.scanned,
+        t.scanned_at
+      FROM tickets t
+      WHERE t.event_id = $1
+      ORDER BY t.created_at DESC`,
+      [eventId]
+    );
+
+    // 3) Send response
+    res.status(200).json({
+      status: 'success',
+      results: ticketsResult.rows.length,
+      data: {
+        event: eventResult.rows[0],
+        tickets: ticketsResult.rows
+      }
+    });
+  } catch (error) {
+    console.error('Error getting event tickets:', error);
+    next(error);
+  }
+};
+
+// Products management
+const getAllProducts = async (req, res, next) => {
+  try {
+    // First, let's check the structure of the products table
+    const columnsResult = await pool.query(
+      `SELECT column_name, data_type 
+       FROM information_schema.columns 
+       WHERE table_name = 'products'`
+    );
+    
+    // Get available columns
+    const availableColumns = columnsResult.rows.map(row => row.column_name);
+    
+    // Build the query based on available columns
+    const hasStock = availableColumns.includes('stock');
+    const hasStatus = availableColumns.includes('status');
+    
+    // Build the select fields
+    const selectFields = [
+      'p.id', 
+      'p.name', 
+      'p.description', 
+      'p.price',
+      'p.created_at',
+      's.full_name as seller_name'
+    ];
+    
+    if (hasStock) selectFields.push('p.stock');
+    if (hasStatus) selectFields.push('p.status');
+    
+    const query = `
+      SELECT ${selectFields.join(', ')}
+      FROM products p
+      LEFT JOIN sellers s ON p.seller_id = s.id
+      ORDER BY p.created_at DESC
+    `;
+    
+    const result = await pool.query(query);
+    
+    res.status(200).json({
+      status: 'success',
+      results: result.rows.length,
+      data: result.rows.map(product => ({
+        ...product,
+        stock: hasStock ? (product.stock || 0) : 0,
+        status: hasStatus ? (product.status || 'active') : 'active',
+        createdAt: product.created_at
+      }))
+    });
+  } catch (error) {
+    console.error('Error getting products:', error);
+    // Return empty array if there's an error
+    res.status(200).json({
+      status: 'success',
+      results: 0,
+      data: []
+    });
+  }
+};
+
+const getSellerProducts = async (req, res, next) => {
+  try {
+    const { sellerId } = req.params;
+    
+    // First, check the structure of the products table
+    const columnsResult = await pool.query(
+      `SELECT column_name, data_type 
+       FROM information_schema.columns 
+       WHERE table_name = 'products'`
+    );
+    
+    // Get available columns
+    const availableColumns = columnsResult.rows.map(row => row.column_name);
+    
+    // Build the query based on available columns
+    const hasStock = availableColumns.includes('stock');
+    const hasStatus = availableColumns.includes('status');
+    
+    // Build the select fields
+    const selectFields = [
+      'p.id', 
+      'p.name', 
+      'p.description', 
+      'p.price',
+      'p.created_at',
+      's.full_name as seller_name'
+    ];
+    
+    if (hasStock) selectFields.push('p.stock');
+    if (hasStatus) selectFields.push('p.status');
+    
+    const query = `
+      SELECT ${selectFields.join(', ')}
+      FROM products p
+      LEFT JOIN sellers s ON p.seller_id = s.id
+      WHERE p.seller_id = $1
+      ORDER BY p.created_at DESC
+    `;
+    
+    const result = await pool.query(query, [sellerId]);
+    
+    res.status(200).json({
+      status: 'success',
+      results: result.rows.length,
+      data: result.rows.map(product => ({
+        ...product,
+        stock: hasStock ? (product.stock || 0) : 0,
+        status: hasStatus ? (product.status || 'active') : 'active',
+        createdAt: product.created_at
+      }))
+    });
+  } catch (error) {
+    console.error('Error getting seller products:', error);
+    // Return empty array if there's an error
+    res.status(200).json({
+      status: 'success',
+      results: 0,
+      data: []
+    });
+  }
+};
+
+// Helper function to determine product status
+function getProductStatus(stock) {
+  if (stock <= 0) return 'Out of Stock';
+  if (stock <= 10) return 'Low Stock';
+  return 'In Stock';
+}
+
+export {
+  adminLogin,
+  protect,
+  getDashboardStats,
+  getAllSellers,
+  getSellerById,
+  updateSellerStatus,
+  getAllOrganizers,
+  getOrganizerById,
+  updateOrganizerStatus,
+  getAllEvents,
+  getEventById,
+  updateEventStatus,
+  getEventTickets,
+  getAllProducts,
+  getSellerProducts,
+
+};

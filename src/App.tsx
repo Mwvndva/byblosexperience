@@ -2,14 +2,21 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider, createBrowserRouter, Outlet } from "react-router-dom";
-import { routes } from "./routes";
 import { OrganizerAuthProvider } from "./contexts/OrganizerAuthContext";
-import { ReactNode } from "react";
+import { adminRouter } from "./routes/admin.routes";
+import { routes } from "./routes";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
-// Create a wrapper component that will be used by the router
-const AppWrapper = ({ children }: { children: ReactNode }) => (
+// Create a wrapper component that will be used by the main app routes
+const AppWrapper = ({ children }: { children: React.ReactNode }) => (
   <OrganizerAuthProvider>
     <TooltipProvider>
       <Toaster />
@@ -18,11 +25,26 @@ const AppWrapper = ({ children }: { children: ReactNode }) => (
   </OrganizerAuthProvider>
 );
 
-// Create the router with the wrapper component and routes
+// Create the main app router with both admin and main app routes
 const router = createBrowserRouter([
+  // Admin routes
   {
-    element: <AppWrapper><Outlet /></AppWrapper>,
+    path: '/admin/*',
+    children: adminRouter.routes,
+  },
+  // Main app routes
+  {
+    element: (
+      <AppWrapper>
+        <Outlet />
+      </AppWrapper>
+    ),
     children: routes,
+  },
+  // Catch-all route - redirect to home or login
+  {
+    path: '*',
+    element: <div>Page not found</div>,
   },
 ]);
 

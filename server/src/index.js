@@ -251,9 +251,13 @@ app.use('/api/health', healthRoutes);
 app.use('/api', publicRoutes);
 app.use('/api/sellers', sellerRoutes);
 
+// Mount admin routes
+app.use('/api/admin', adminRoutes);
+
 // Import the event routes
 import eventRoutes from './routes/event.routes.js';
 import protectedOrganizerRoutes from './routes/protectedOrganizer.routes.js';
+import adminRoutes from './routes/admin.routes.js';
 
 // Mount the event routes
 app.use('/api/events', eventRoutes);

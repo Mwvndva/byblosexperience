@@ -53,36 +53,51 @@ export const protect = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log('Auth middleware - Token verified. User ID:', decoded.id);
 
-    // 3) Check if user exists in either sellers or organizers table
+    // 3) Check if user is admin or exists in sellers/organizers tables
     let user = null;
     let userType = 'seller';
     
-    // Try to find in sellers table
-    const sellerResult = await query(
-      'SELECT id, email FROM sellers WHERE id = $1',
-      [decoded.id]
-    );
-    
-    if (sellerResult.rows[0]) {
-      user = sellerResult.rows[0];
+    // Check if this is the admin user
+    if (decoded.id === 'admin') {
+      user = {
+        id: 'admin',
+        email: 'admin@byblos.com',
+        userType: 'admin'
+      };
     } else {
-      // If not found in sellers, try organizers table
-      const organizerResult = await query(
-        'SELECT id, email, full_name as name FROM organizers WHERE id = $1',
-        [decoded.id]
-      );
-      if (organizerResult.rows[0]) {
-        user = organizerResult.rows[0];
-        userType = 'organizer';
+      // Try to find in sellers table
+      try {
+        const sellerResult = await query(
+          'SELECT id, email FROM sellers WHERE id = $1',
+          [decoded.id]
+        );
+        
+        if (sellerResult.rows[0]) {
+          user = sellerResult.rows[0];
+          userType = 'seller';
+        } else {
+          // If not found in sellers, try organizers table
+          const organizerResult = await query(
+            'SELECT id, email, full_name as name FROM organizers WHERE id = $1',
+            [decoded.id]
+          );
+          if (organizerResult.rows[0]) {
+            user = organizerResult.rows[0];
+            userType = 'organizer';
+          }
+        }
+      } catch (dbError) {
+        console.error('Database error during user lookup:', dbError);
+        return next(new AppError('Error during authentication', 500));
       }
-    }
 
-    if (!user) {
-      return next(new AppError('The user belonging to this token no longer exists.', 401));
+      if (!user) {
+        return next(new AppError('The user belonging to this token no longer exists.', 401));
+      }
+      
+      // Add user type to the user object
+      user.userType = userType;
     }
-    
-    // Add user type to the user object
-    user.userType = userType;
 
 
     // 4) Grant access to protected route
