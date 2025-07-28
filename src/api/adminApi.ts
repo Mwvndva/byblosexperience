@@ -3,7 +3,7 @@ import { EventTicketsResponse } from '@/types/ticket';
 
 // Default API configuration
 // Include /api in the base URL since our routes are prefixed with /api
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002') + '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002/api';
 console.log('Using API base URL:', API_BASE_URL);
 
 // Helper function to determine product status based on stock
