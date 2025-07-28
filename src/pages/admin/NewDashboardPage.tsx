@@ -84,7 +84,7 @@ interface DashboardState {
     email: string;
     phone?: string;
     status: string;
-    created_at: string;
+    createdAt: string;
   }>;
   monthlyEvents: MonthlyEventData[];
 }
@@ -343,44 +343,35 @@ const NewAdminDashboard = () => {
       setIsLoadingBuyers(true);
       setError(null);
       
-      // Fetch ticket types first
-      const types = await fetchTicketTypes(eventId);
-      
-      // Then fetch ticket buyers from the API
+      // Fetch ticket buyers from the API (now includes ticket type information)
       const response = await adminApi.getEventTicketBuyers(eventId);
       
-      // Extract the tickets array from the nested response
-      const tickets = response?.data?.tickets || [];
+      // Extract the tickets array from the response
+      const tickets = response.data?.tickets || [];
       
-      console.log('Processing tickets with types:', types);
+      console.log('Fetched tickets with types:', tickets);
       
       // Transform the ticket data to match our expected format
-      const buyers = tickets.map((ticket: any) => {
-        const ticketTypeId = ticket.ticket_type_id?.toString();
-        let ticketTypeName = 'General Admission';
+      const buyers = tickets.map((ticket) => {
+        // Use the ticket type information from the API response
+        const ticketTypeName = ticket.ticketType?.displayName || ticket.ticketType?.name || 'General Admission';
+        const ticketTypeId = ticket.ticketType?.id || 'unknown';
         
-        if (ticketTypeId) {
-          // Try to find the ticket type name in our mapping
-          ticketTypeName = types[ticketTypeId] || `Unknown (ID: ${ticketTypeId})`;
-          
-          // If we couldn't find the ticket type, log it for debugging
-          if (!types[ticketTypeId]) {
-            console.warn(`Ticket type ID ${ticketTypeId} not found in types mapping`);
-          }
-        } else {
-          console.warn('Ticket has no ticket_type_id:', ticket);
+        // Log any tickets with missing type information for debugging
+        if (!ticket.ticketType) {
+          console.warn('Ticket is missing type information:', ticket);
         }
         
         return {
           id: ticket.id?.toString() || Math.random().toString(36).substr(2, 9),
-          name: ticket.customer_name || 'Anonymous',
-          email: ticket.customer_email || 'No email provided',
+          name: ticket.customerName || 'Anonymous',
+          email: ticket.customerEmail || 'No email provided',
           ticketType: ticketTypeName,
           ticketTypeId: ticketTypeId || 'general',
           ticketStatus: ticket.status || 'Valid',
-          isScanned: ticket.is_scanned || false,
-          quantity: parseInt(ticket.quantity) || 1,
-          purchaseDate: new Date(ticket.purchase_date || new Date()).toISOString()
+          isScanned: ticket.scanned || false,
+          quantity: 1, // Default to 1 since we're dealing with individual tickets
+          purchaseDate: new Date(ticket.createdAt || new Date()).toISOString()
         };
       });
       
@@ -560,52 +551,76 @@ const NewAdminDashboard = () => {
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
             {/* Events Chart */}
-            <Card className="bg-gray-800 border-gray-700 p-6">
-              <CardHeader>
-                <CardTitle className="text-white">Monthly Event Counts</CardTitle>
-                <CardDescription className="text-gray-300">Monthly event counts performance</CardDescription>
+            <Card className="bg-gray-800 border-gray-700 overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-white text-lg">Monthly Event Counts</CardTitle>
+                <CardDescription className="text-gray-300 text-sm">Monthly event counts performance</CardDescription>
               </CardHeader>
-              <CardContent className="h-80">
-                <div className="mt-4 h-[300px]">
+              <CardContent className="p-4 pt-0">
+                <div className="h-[300px] w-full">
                   {eventsData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
                         data={eventsData}
                         margin={{
-                          top: 5,
-                          right: 10,
-                          left: 10,
+                          top: 20,
+                          right: 20,
+                          left: 0,
                           bottom: 5,
                         }}
+                        barCategoryGap="15%"
+                        barGap={4}
                       >
-                        <Tooltip content={<EventsTooltip />} cursor={{ fill: 'rgba(255, 255, 255, 0.1)' }} />
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" />
+                        <defs>
+                          <linearGradient id="eventBarGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.8} />
+                            <stop offset="100%" stopColor="#3B82F6" stopOpacity={0.2} />
+                          </linearGradient>
+                        </defs>
+                        <Tooltip 
+                          content={<EventsTooltip />} 
+                          cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} 
+                          contentStyle={{
+                            backgroundColor: '#1F2937',
+                            border: '1px solid #374151',
+                            borderRadius: '0.5rem',
+                            padding: '0.5rem',
+                          }}
+                        />
+                        <CartesianGrid 
+                          strokeDasharray="3 3" 
+                          vertical={false} 
+                          stroke="#374151" 
+                        />
                         <XAxis 
                           dataKey="name" 
-                          stroke="#888888"
+                          stroke="#9CA3AF"
                           fontSize={12}
                           tickLine={false}
                           axisLine={false}
+                          tickMargin={10}
+                          interval={0}
                         />
                         <YAxis 
-                          stroke="#888888"
+                          stroke="#9CA3AF"
                           fontSize={12}
                           tickLine={false}
                           axisLine={false}
                           allowDecimals={false}
+                          width={30}
                         />
                         <Bar 
                           dataKey="count" 
-                          name="Events" 
-                          fill="#3B82F6" 
+                          name="Events"
+                          fill="url(#eventBarGradient)" 
                           radius={[4, 4, 0, 0]}
-                          barSize={32}
+                          barSize={24}
                         />
                       </BarChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="flex h-full flex-col items-center justify-center">
-                      <p className="text-muted-foreground">No event data available</p>
+                    <div className="flex h-full items-center justify-center">
+                      <p className="text-gray-400 text-sm">No event data available</p>
                     </div>
                   )}
                 </div>
@@ -613,12 +628,12 @@ const NewAdminDashboard = () => {
             </Card>
 
             {/* Recent Events */}
-            <Card className="bg-gray-800 border-gray-700 p-6">
-              <CardHeader>
-                <CardTitle className="text-white">Recent Events</CardTitle>
-                <CardDescription className="text-gray-300">Latest events created in the system</CardDescription>
+            <Card className="bg-gray-800 border-gray-700 overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-white text-lg">Recent Events</CardTitle>
+                <CardDescription className="text-gray-300 text-sm">Latest events created in the system</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4 pt-0">
                 <div className="space-y-4">
                   {dashboardState.recentEvents?.map((event) => (
                     <div 
@@ -650,10 +665,10 @@ const NewAdminDashboard = () => {
                   ))}
                 </div>
               </CardContent>
-              <CardFooter className="border-t border-gray-700 pt-4">
+              <CardFooter className="border-t border-gray-700 p-4">
                 <Button 
                   variant="ghost" 
-                  className="text-yellow-400 hover:bg-yellow-500 hover:bg-opacity-10"
+                  className="text-yellow-400 hover:bg-yellow-500 hover:bg-opacity-10 text-sm"
                 >
                   View all events
                 </Button>
@@ -663,14 +678,17 @@ const NewAdminDashboard = () => {
 
           {/* Events Tab */}
           <TabsContent value="events" className="space-y-6">
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
+            <Card className="bg-gray-800 border-gray-700 overflow-hidden">
+              <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium">Events Overview</h3>
+                  <div>
+                    <CardTitle className="text-white text-lg">Events Overview</CardTitle>
+                    <CardDescription className="text-gray-300 text-sm">Manage all events in the platform</CardDescription>
+                  </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="flex items-center gap-1">
+                    <Badge variant="outline" className="flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300">
                       <Calendar className="h-3 w-3" />
-                      <span>Last 12 months</span>
+                      <span className="text-xs">Last 12 months</span>
                     </Badge>
                   </div>
                 </div>
@@ -747,16 +765,18 @@ const NewAdminDashboard = () => {
               </CardContent>
               <CardFooter className="border-t border-gray-700 px-6 py-4">
                 <div className="flex items-center justify-between w-full text-sm text-gray-400">
-                  <div>Showing {dashboardState.recentEvents?.length || 0} of {dashboardState.recentEvents?.length || 0} events</div>
+                  <div className="text-sm text-gray-400">
+                    Showing <span className="text-white font-medium">{dashboardState.recentEvents?.length || 0}</span> of {dashboardState.recentEvents?.length || 0} events
+                  </div>
                   <div className="flex items-center space-x-2">
-                    <Button variant="ghost" size="sm" disabled={true} className="text-gray-400 hover:bg-gray-700">
-                      Previous
+                    <Button variant="ghost" size="sm" disabled={true} className="text-gray-400 hover:bg-gray-700 h-8 w-8 p-0">
+                      &larr;
                     </Button>
-                    <Button variant="ghost" size="sm" className="bg-gray-700 text-white">
+                    <Button variant="ghost" size="sm" className="bg-gray-700 text-white h-8 w-8 p-0">
                       1
                     </Button>
-                    <Button variant="ghost" size="sm" className="text-gray-400 hover:bg-gray-700">
-                      Next
+                    <Button variant="ghost" size="sm" className="text-gray-400 hover:bg-gray-700 h-8 w-8 p-0">
+                      &rarr;
                     </Button>
                   </div>
                 </div>
@@ -766,11 +786,11 @@ const NewAdminDashboard = () => {
 
           {/* Organizers Tab */}
           <TabsContent value="organizers" className="space-y-6">
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
+            <Card className="bg-gray-800 border-gray-700 overflow-hidden">
+              <CardHeader className="pb-2">
                 <div>
-                  <CardTitle className="text-white">Organizers</CardTitle>
-                  <CardDescription className="text-gray-300">
+                  <CardTitle className="text-white text-lg">Organizers</CardTitle>
+                  <CardDescription className="text-gray-300 text-sm">
                     Manage all event organizers in the platform
                   </CardDescription>
                 </div>
@@ -813,7 +833,7 @@ const NewAdminDashboard = () => {
               </CardContent>
               <CardFooter className="border-t border-gray-700 px-6 py-4">
                 <div className="text-sm text-gray-400">
-                  Showing {dashboardState.organizers?.length || 0} organizers
+                  Showing <span className="text-white font-medium">{dashboardState.organizers?.length || 0}</span> {dashboardState.organizers?.length === 1 ? 'organizer' : 'organizers'}
                 </div>
               </CardFooter>
             </Card>
@@ -821,11 +841,11 @@ const NewAdminDashboard = () => {
 
           {/* Sellers Tab */}
           <TabsContent value="sellers" className="space-y-6">
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
+            <Card className="bg-gray-800 border-gray-700 overflow-hidden">
+              <CardHeader className="pb-2">
                 <div>
-                  <CardTitle className="text-white">Sellers</CardTitle>
-                  <CardDescription className="text-gray-300">
+                  <CardTitle className="text-white text-lg">Sellers</CardTitle>
+                  <CardDescription className="text-gray-300 text-sm">
                     Manage all sellers in the platform
                   </CardDescription>
                 </div>
@@ -868,7 +888,7 @@ const NewAdminDashboard = () => {
               </CardContent>
               <CardFooter className="border-t border-gray-700 px-6 py-4">
                 <div className="text-sm text-gray-400">
-                  Showing {dashboardState.sellers?.length || 0} sellers
+                  Showing <span className="text-white font-medium">{dashboardState.sellers?.length || 0}</span> {dashboardState.sellers?.length === 1 ? 'seller' : 'sellers'}
                 </div>
               </CardFooter>
             </Card>

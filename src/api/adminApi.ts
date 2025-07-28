@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { EventTicketsResponse } from '@/types/ticket';
 
 // Default API configuration
 // Include /api in the base URL since our routes are prefixed with /api
@@ -115,23 +116,36 @@ const adminApi = {
   async getSellers() {
     try {
       console.log('Fetching sellers from API...');
-      const { data } = await api.get('/admin/sellers');
-      console.log('Raw API response:', data);
+      const response = await api.get('/admin/sellers');
+      console.log('Sellers API response:', response);
       
-      const sellers = data.data.map((seller: any) => ({
-        id: seller.id,
-        name: seller.name || seller.full_name || 'Unnamed Seller',
-        email: seller.email,
-        phone: seller.phone || '',
-        status: seller.status || 'Active',
-        createdAt: seller.created_at || new Date().toISOString(),
+      // Handle different response formats
+      let sellersData = [];
+      if (response.data && Array.isArray(response.data.data)) {
+        sellersData = response.data.data;
+      } else if (Array.isArray(response.data)) {
+        sellersData = response.data;
+      } else {
+        console.error('Unexpected API response format:', response);
+        return [];
+      }
+      
+      const sellers = sellersData.map((seller: any) => ({
+        id: String(seller.id || `seller-${Math.random().toString(36).substr(2, 9)}`),
+        name: String(seller.name || `${seller.first_name || ''} ${seller.last_name || ''}`.trim() || 'Unnamed Seller'),
+        email: String(seller.email || ''),
+        phone: seller.phone ? String(seller.phone) : undefined,
+        status: String(seller.status || 'Active'),
+        // Use camelCase for consistency
+        createdAt: seller.created_at || seller.createdAt || new Date().toISOString()
       }));
       
-      console.log('Processed sellers:', sellers);
+      console.log(`Fetched ${sellers.length} sellers`);
       return sellers;
     } catch (error) {
       console.error('Error fetching sellers:', error);
-      throw error;
+      // Return empty array instead of throwing to prevent UI crashes
+      return [];
     }
   },
 
@@ -142,111 +156,108 @@ const adminApi = {
       const response = await api.get('/admin/events');
       console.log('Raw API response:', response);
       
-      if (!response.data || !Array.isArray(response.data.data)) {
+      // Handle different response formats
+      let eventsData = [];
+      if (response.data && Array.isArray(response.data.data)) {
+        eventsData = response.data.data;
+      } else if (Array.isArray(response.data)) {
+        eventsData = response.data;
+      } else {
         console.error('Unexpected API response format:', response);
         return [];
       }
       
-      const events = response.data.data.map((event: any) => {
-        const mappedEvent = {
-          id: event.id,
-          title: event.title || event.name || 'Untitled Event',
-          start_date: event.start_date,
-          end_date: event.end_date,
-          date: event.start_date || event.date,
-          location: event.location || 'Location not specified',
-          status: getEventStatus(event.start_date, event.end_date, event.status),
-          attendees: event.attendees || event.attendees_count || 0,
-          attendees_count: event.attendees_count || event.attendees || 0,
-          revenue: parseFloat(event.revenue || 0),
-          // Include all original fields for debugging
-          _raw: event,
-          // Backward compatibility
-          ticketsSold: event.tickets_sold || 0,
-          organizer_name: event.organizer_name || 'Unknown Organizer',
-          description: event.description || ''
-        };
-        console.log('Mapped event:', mappedEvent);
-        return mappedEvent;
-      });
+      const events = eventsData.map((event: any) => ({
+        id: String(event.id || `event-${Math.random().toString(36).substr(2, 9)}`),
+        title: String(event.title || 'Untitled Event'),
+        date: event.start_date || event.date || new Date().toISOString(),
+        end_date: event.end_date || undefined,
+        venue: String(event.venue || event.location || 'Venue not specified'),
+        location: String(event.location || event.venue || 'Location not specified'),
+        status: getEventStatus(event.start_date, event.end_date, event.status),
+        organizer_name: String(event.organizer?.name || event.organizer_name || 'Unknown Organizer'),
+        attendees_count: Number(event.attendees_count || event.attendeesCount || 0),
+        revenue: Number(event.revenue || 0),
+        // Use camelCase for consistency
+        createdAt: event.created_at || event.createdAt || new Date().toISOString()
+      }));
       
+      // Sort events by date (newest first)
+      events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      
+      console.log(`Fetched ${events.length} events`);
       return events;
     } catch (error) {
       console.error('Error fetching events:', error);
-      throw error;
+      // Return empty array instead of throwing to prevent UI crashes
+      return [];
     }
   },
 
   // Products
   async getProducts() {
     try {
+      console.log('Fetching products from API...');
       const { data } = await api.get('/admin/products');
-      return data.data.map((product: any) => ({
-        id: product.id,
-        name: product.name,
-        price: parseFloat(product.price || 0),
-        stock: parseInt(product.stock || 0, 10),
-        status: getProductStatus(parseInt(product.stock || 0, 10)),
+      console.log('Products API response:', data);
+      
+      // Handle different response formats
+      let productsData = [];
+      if (data && Array.isArray(data.data)) {
+        productsData = data.data;
+      } else if (Array.isArray(data)) {
+        productsData = data;
+      } else {
+        console.error('Unexpected API response format:', data);
+        return [];
+      }
+      
+      const products = productsData.map((product: any) => ({
+        id: String(product.id || `product-${Math.random().toString(36).substr(2, 9)}`),
+        name: String(product.name || 'Unnamed Product'),
+        price: Number(product.price || 0),
+        status: getProductStatus(Number(product.stock || 0)),
+        stock: Number(product.stock || 0),
+        seller_name: String(product.seller?.name || product.seller_name || 'Unknown Seller'),
+        // Use camelCase for consistency
+        createdAt: product.created_at || product.createdAt || new Date().toISOString(),
+        // Include additional fields that might be needed
+        image: product.image_url || product.image || '',
+        description: product.description || ''
       }));
+      
+      console.log(`Fetched ${products.length} products`);
+      return products;
     } catch (error) {
       console.error('Error fetching products:', error);
-      throw error;
-    }
-  },
-
-  // Organizers
-  async getOrganizers() {
-    try {
-      const { data } = await api.get('/admin/organizers');
-      return data.data.map((organizer: any) => ({
-        id: organizer.id,
-        name: organizer.full_name || organizer.name || 'Unnamed Organizer',
-        email: organizer.email,
-        phone: organizer.phone || '',
-        status: organizer.status || 'Active',
-        createdAt: organizer.created_at || new Date().toISOString(),
-      }));
-    } catch (error) {
-      console.error('Error fetching organizers:', error);
-      throw error;
-    }
-  },
-
-  // Get ticket types for an event
-  getEventTicketTypes: async (eventId: string | number) => {
-    try {
-      const response = await api.get(`/events/public/${eventId}/ticket-types`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching event ticket types:', error);
-      throw error;
-    }
-  },
-
-  // Get ticket buyers for an event
-  getEventTicketBuyers: async (eventId: string | number) => {
-    try {
-      const response = await api.get(`/admin/events/${eventId}/tickets`);
-      // Map the response to match what the frontend expects
-      return {
-        data: {
-          tickets: response.data.data.tickets || []
-        }
-      };
-    } catch (error) {
-      console.error('Error fetching event ticket buyers:', error);
-      throw error;
+      // Return empty array instead of throwing to prevent UI crashes
+      return [];
     }
   },
 
   // Get monthly event counts
   async getMonthlyEvents() {
     try {
+      console.log('Fetching monthly events...');
       const { data } = await api.get('/admin/events/monthly');
-      return data.data || [];
+      console.log('Monthly events response:', data);
+      
+      // Transform the data to match the expected format
+      const monthlyEvents = Array.isArray(data.data) 
+        ? data.data.map((item: any) => ({
+            month: item.month || '',
+            count: item.count || 0,
+            revenue: item.revenue || 0,
+            // Include any additional fields
+            ...item
+          }))
+        : [];
+      
+      console.log('Transformed monthly events:', monthlyEvents);
+      return monthlyEvents;
     } catch (error) {
       console.error('Error fetching monthly events:', error);
-      // Return empty array if API call fails
+      // Return an empty array with the expected structure
       return [];
     }
   },
@@ -254,45 +265,153 @@ const adminApi = {
   // Dashboard Analytics
   async getAnalytics() {
     try {
-      // Get analytics from the admin dashboard endpoint
+      console.log('Fetching dashboard analytics...');
       const { data } = await api.get('/admin/dashboard');
-      const responseData = data.data || data;
+      console.log('Dashboard analytics response:', data);
       
-      return {
-        totalSellers: responseData.total_sellers || 0,
-        totalProducts: responseData.total_products || 0,
-        totalOrganizers: responseData.total_organizers || 0,
-        totalEvents: responseData.total_events || 0,
-        totalRevenue: parseFloat(responseData.total_revenue || 0),
+      // Transform the response to match the expected frontend format
+      const analytics = {
+        totalRevenue: data.data?.total_revenue || 0,
+        totalEvents: data.data?.total_events || 0,
+        totalOrganizers: data.data?.total_organizers || 0,
+        totalProducts: data.data?.total_products || 0,
+        totalSellers: data.data?.total_sellers || 0,
         monthlyGrowth: {
-          sellers: responseData.monthly_growth?.sellers || 0,
-          products: responseData.monthly_growth?.products || 0,
-          organizers: responseData.monthly_growth?.organizers || 0,
-          events: responseData.monthly_growth?.events || 0,
-          revenue: responseData.monthly_growth?.revenue || 0,
+          revenue: data.data?.monthly_growth?.revenue || 0,
+          events: data.data?.monthly_growth?.events || 0,
+          organizers: data.data?.monthly_growth?.organizers || 0,
+          products: data.data?.monthly_growth?.products || 0,
+          sellers: data.data?.monthly_growth?.sellers || 0
         },
-        recentActivities: responseData.recent_activities || [],
+        recentActivities: data.data?.recent_activities || []
       };
+      
+      console.log('Transformed analytics:', analytics);
+      return analytics;
     } catch (error) {
       console.error('Error fetching analytics:', error);
-      // Return default values if analytics endpoint fails
+      // Return default values that match the expected structure
       return {
-        totalSellers: 0,
-        totalProducts: 0,
-        totalOrganizers: 0,
-        totalEvents: 0,
         totalRevenue: 0,
+        totalEvents: 0,
+        totalOrganizers: 0,
+        totalProducts: 0,
+        totalSellers: 0,
         monthlyGrowth: {
-          sellers: 0,
-          products: 0,
-          organizers: 0,
-          events: 0,
           revenue: 0,
+          events: 0,
+          organizers: 0,
+          products: 0,
+          sellers: 0
         },
-        recentActivities: [],
+        recentActivities: []
       };
     }
   },
+  
+  // Organizers
+  async getOrganizers() {
+    try {
+      console.log('Fetching organizers from API...');
+      const response = await api.get('/admin/organizers');
+      console.log('Organizers API response:', response);
+      
+      // Handle different response formats
+      let organizersData = [];
+      if (response.data && Array.isArray(response.data.data)) {
+        organizersData = response.data.data;
+      } else if (Array.isArray(response.data)) {
+        organizersData = response.data;
+      } else {
+        console.error('Unexpected API response format:', response);
+        return [];
+      }
+      
+      const organizers = organizersData.map((organizer: any) => ({
+        id: String(organizer.id || `org-${Math.random().toString(36).substr(2, 9)}`),
+        name: String(organizer.name || organizer.full_name || 'Unnamed Organizer'),
+        email: String(organizer.email || ''),
+        phone: organizer.phone ? String(organizer.phone) : undefined,
+        status: String(organizer.status || 'Active'),
+        // Transform snake_case to camelCase for the frontend
+        createdAt: organizer.created_at || organizer.createdAt || new Date().toISOString()
+      }));
+      
+      console.log(`Fetched ${organizers.length} organizers`);
+      return organizers;
+    } catch (error) {
+      console.error('Error fetching organizers:', error);
+      // Return empty array instead of throwing to prevent UI crashes
+      return [];
+    }
+  },
+
+  // Get ticket types for an event
+  async getEventTicketTypes(eventId: string | number) {
+    try {
+      const response = await api.get(`/events/public/${eventId}/ticket-types`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching event ticket types:', error);
+      // Return empty array instead of throwing to prevent UI crashes
+      return [];
+    }
+  },
+
+  // Get ticket buyers for an event with detailed ticket type information
+  async getEventTicketBuyers(eventId: string | number): Promise<EventTicketsResponse> {
+    try {
+      const response = await api.get(`/admin/events/${eventId}/tickets`);
+      const tickets = response.data?.data?.tickets || [];
+      
+      // Map the response to match the frontend's expected format
+      return {
+        data: {
+          event: response.data?.data?.event || null,
+          tickets: tickets.map((ticket: any) => ({
+            id: ticket.id,
+            ticketNumber: ticket.ticket_number,
+            customerName: ticket.customer_name,
+            customerEmail: ticket.customer_email,
+            price: parseFloat(ticket.price || 0),
+            status: ticket.status,
+            createdAt: ticket.created_at,
+            scanned: ticket.scanned,
+            scannedAt: ticket.scanned_at,
+            ticketType: ticket.ticket_type ? {
+              id: ticket.ticket_type.id,
+              name: ticket.ticket_type.name,
+              displayName: ticket.ticket_type.name, // Using name as display name if not provided
+              description: ticket.ticket_type.description || '',
+              price: parseFloat(ticket.ticket_type.price || 0),
+              quantityAvailable: parseInt(ticket.ticket_type.quantity_available || 0, 10),
+              salesStart: ticket.ticket_type.sales_start,
+              salesEnd: ticket.ticket_type.sales_end
+            } : {
+              // Fallback for tickets without type information
+              id: `temp-${Math.random().toString(36).substr(2, 9)}`,
+              name: ticket.ticket_type_name || 'General Admission',
+              displayName: ticket.ticket_type_name || 'General Admission',
+              description: '',
+              price: parseFloat(ticket.price || 0),
+              quantityAvailable: 0,
+              salesStart: null,
+              salesEnd: null
+            }
+          }))
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching event ticket buyers:', error);
+      // Return empty data instead of throwing to prevent UI crashes
+      return { 
+        data: { 
+          event: null,
+          tickets: [] 
+        } 
+      };
+    }
+  }
 };
 
 export default adminApi;

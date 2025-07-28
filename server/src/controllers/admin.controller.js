@@ -478,7 +478,7 @@ const getEventTickets = async (req, res, next) => {
 
     // 1) Get event details
     const eventResult = await pool.query(
-      'SELECT id, name FROM events WHERE id = $1',
+      'SELECT id, name, start_date, end_date, location FROM events WHERE id = $1',
       [eventId]
     );
 
@@ -486,7 +486,7 @@ const getEventTickets = async (req, res, next) => {
       return next(new AppError('No event found with that ID', 404));
     }
 
-    // 2) Get all tickets for the event with ticket type information
+    // 2) Get all tickets for the event with detailed ticket type information
     const ticketsResult = await pool.query(
       `SELECT 
         t.id, 
@@ -498,20 +498,49 @@ const getEventTickets = async (req, res, next) => {
         t.status,
         t.created_at,
         t.scanned,
-        t.scanned_at
+        t.scanned_at,
+        tt.id as ticket_type_id,
+        tt.name as ticket_type_name,
+        tt.description as ticket_type_description,
+        tt.quantity_available as ticket_type_quantity,
+        tt.sales_start as ticket_type_sales_start,
+        tt.sales_end as ticket_type_sales_end
       FROM tickets t
+      LEFT JOIN ticket_types tt ON t.ticket_type_name = tt.name AND t.event_id = tt.event_id
       WHERE t.event_id = $1
       ORDER BY t.created_at DESC`,
       [eventId]
     );
 
-    // 3) Send response
+    // 3) Format the response with nested ticket type information
+    const tickets = ticketsResult.rows.map(ticket => ({
+      id: ticket.id,
+      ticket_number: ticket.ticket_number,
+      customer_name: ticket.customer_name,
+      customer_email: ticket.customer_email,
+      price: parseFloat(ticket.price || 0),
+      status: ticket.status,
+      created_at: ticket.created_at,
+      scanned: ticket.scanned,
+      scanned_at: ticket.scanned_at,
+      ticket_type: {
+        id: ticket.ticket_type_id,
+        name: ticket.ticket_type_name,
+        description: ticket.ticket_type_description || '',
+        price: parseFloat(ticket.price || 0),
+        quantity_available: parseInt(ticket.ticket_type_quantity || 0, 10),
+        sales_start: ticket.ticket_type_sales_start,
+        sales_end: ticket.ticket_type_sales_end
+      }
+    }));
+
+    // 4) Send response
     res.status(200).json({
       status: 'success',
-      results: ticketsResult.rows.length,
+      results: tickets.length,
       data: {
         event: eventResult.rows[0],
-        tickets: ticketsResult.rows
+        tickets: tickets
       }
     });
   } catch (error) {
