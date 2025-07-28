@@ -643,11 +643,58 @@ const getSellerProducts = async (req, res, next) => {
 };
 
 // Helper function to determine product status
-function getProductStatus(stock) {
-  if (stock <= 0) return 'Out of Stock';
-  if (stock <= 10) return 'Low Stock';
-  return 'In Stock';
-}
+const getProductStatus = (stock) => {
+  if (stock > 10) return 'In Stock';
+  if (stock > 0) return 'Low Stock';
+  return 'Out of Stock';
+};
+
+// Get monthly event counts
+const getMonthlyEvents = async (req, res, next) => {
+  try {
+    console.log('Fetching monthly event counts...');
+    
+    // Query to get event counts for the last 12 months
+    const query = `
+      WITH months AS (
+        SELECT 
+          DATE_TRUNC('month', CURRENT_DATE - INTERVAL '11 months' + (n || ' months')::interval) AS month
+        FROM generate_series(0, 11) n
+      )
+      SELECT 
+        TO_CHAR(m.month, 'YYYY-MM-DD') AS month,
+        COUNT(e.id) AS event_count
+      FROM months m
+      LEFT JOIN events e ON DATE_TRUNC('month', e.created_at) = m.month
+      GROUP BY m.month
+      ORDER BY m.month ASC;
+    `;
+
+    console.log('Executing events query...');
+    const result = await pool.query(query);
+    console.log('Query result rows:', result.rows);
+    
+    // Format the response
+    const monthlyEvents = result.rows.map(row => ({
+      month: row.month,
+      event_count: parseInt(row.event_count) || 0
+    }));
+
+    res.status(200).json({
+      status: 'success',
+      data: monthlyEvents
+    });
+  } catch (error) {
+    console.error('Error fetching monthly events:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      hint: error.hint,
+      stack: error.stack
+    });
+    next(new AppError(`Failed to fetch monthly event data: ${error.message}`, 500));
+  }
+};
 
 export {
   adminLogin,
@@ -658,6 +705,7 @@ export {
   updateSellerStatus,
   getAllOrganizers,
   getOrganizerById,
+  getMonthlyEvents,
   updateOrganizerStatus,
   getAllEvents,
   getEventById,

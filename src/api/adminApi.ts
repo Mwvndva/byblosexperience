@@ -239,6 +239,18 @@ const adminApi = {
     }
   },
 
+  // Get monthly event counts
+  async getMonthlyEvents() {
+    try {
+      const { data } = await api.get('/admin/events/monthly');
+      return data.data || [];
+    } catch (error) {
+      console.error('Error fetching monthly events:', error);
+      // Return empty array if API call fails
+      return [];
+    }
+  },
+
   // Dashboard Analytics
   async getAnalytics() {
     try {

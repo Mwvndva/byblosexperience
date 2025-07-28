@@ -1,36 +1,47 @@
-import { RouteObject, createBrowserRouter } from 'react-router-dom';
-import { AdminLogin } from '@/pages/admin/LoginPage';
-import { AdminDashboard } from '@/pages/admin/DashboardPage';
-import { AdminProtectedRoute } from '@/components/admin/AdminProtectedRoute';
+import { RouteObject, createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom';
+import { AdminAuthProvider } from '@/contexts/AdminAuthContext';
+import NewAdminDashboard from '@/pages/admin/NewDashboardPage';
+import { AdminLoginPage } from '@/pages/admin/AdminLoginPage';
+import { Toaster } from '@/components/ui/toaster';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 // Admin routes configuration
 export const adminRoutes: RouteObject[] = [
   {
     path: 'login',
-    element: <AdminLogin />,
+    element: <AdminLoginPage />,
   },
   {
-    element: <AdminProtectedRoute />,
-    children: [
-      {
-        path: 'dashboard',
-        element: <AdminDashboard />,
-      },
-      {
-        path: '',
-        element: <AdminDashboard />, // Redirect to dashboard by default
-      },
-    ],
+    path: 'dashboard',
+    element: <NewAdminDashboard />,
+  },
+  {
+    path: '',
+    element: <NewAdminDashboard />, // Default to new dashboard
+  },
+];
+
+// Create admin layout with providers
+const AdminLayout = () => (
+  <AdminAuthProvider>
+    <TooltipProvider>
+      <Toaster />
+      <Outlet />
+    </TooltipProvider>
+  </AdminAuthProvider>
+);
+
+// Create admin routes with layout
+const adminRoutesWithLayout: RouteObject[] = [
+  {
+    path: '/admin',
+    element: <AdminLayout />,
+    children: adminRoutes,
   },
 ];
 
 // Create and export the admin router
 export const adminRouter = {
-  routes: adminRoutes,
-  router: createBrowserRouter([
-    {
-      path: '/admin/*',
-      children: adminRoutes,
-    },
-  ]),
+  routes: adminRoutesWithLayout,
+  router: createBrowserRouter(adminRoutesWithLayout),
 };

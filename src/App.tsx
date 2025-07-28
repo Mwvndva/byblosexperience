@@ -1,8 +1,10 @@
+import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider, createBrowserRouter, Outlet } from "react-router-dom";
 import { OrganizerAuthProvider } from "./contexts/OrganizerAuthContext";
+import { AdminAuthProvider } from "./contexts/AdminAuthContext";
 import { adminRouter } from "./routes/admin.routes";
 import { routes } from "./routes";
 
@@ -15,7 +17,7 @@ const queryClient = new QueryClient({
   },
 });
 
-// Create a wrapper component that will be used by the main app routes
+// Create a wrapper component for the main app
 const AppWrapper = ({ children }: { children: React.ReactNode }) => (
   <OrganizerAuthProvider>
     <TooltipProvider>
@@ -25,13 +27,24 @@ const AppWrapper = ({ children }: { children: React.ReactNode }) => (
   </OrganizerAuthProvider>
 );
 
+// Create a wrapper for admin routes with AdminAuthProvider
+const AdminWrapper = ({ children }: { children: React.ReactNode }) => (
+  <AdminAuthProvider>
+    <TooltipProvider>
+      <Toaster />
+      {children}
+    </TooltipProvider>
+  </AdminAuthProvider>
+);
+
 // Create the main app router with both admin and main app routes
 const router = createBrowserRouter([
-  // Admin routes
-  {
-    path: '/admin/*',
-    children: adminRouter.routes,
-  },
+  // Admin routes with AdminAuthProvider
+  ...adminRouter.routes.map(route => ({
+    ...route,
+    element: <AdminWrapper>{route.element}</AdminWrapper>,
+  })),
+  
   // Main app routes
   {
     element: (
@@ -39,16 +52,17 @@ const router = createBrowserRouter([
         <Outlet />
       </AppWrapper>
     ),
-    children: routes,
-  },
-  // Catch-all route - redirect to home or login
-  {
-    path: '*',
-    element: <div>Page not found</div>,
+    children: [
+      ...routes,
+      {
+        path: '*',
+        element: <div>Page not found</div>,
+      }
+    ],
   },
 ]);
 
-const App = () => (
+const App: React.FC = () => (
   <QueryClientProvider client={queryClient}>
     <RouterProvider router={router} fallbackElement={<div>Loading...</div>} />
   </QueryClientProvider>

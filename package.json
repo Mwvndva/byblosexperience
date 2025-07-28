@@ -13,7 +13,8 @@
     "test": "playwright test",
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",
-    "start": "vite preview --port 3000"
+    "start": "vite preview --port 3000",
+    "postinstall": "npm dedupe"
   },
   "dependencies": {
     "@ant-design/icons": "^6.0.0",
@@ -51,7 +52,7 @@
     "@radix-ui/react-toggle-group": "^1.1.0",
     "@radix-ui/react-tooltip": "^1.1.4",
     "@supabase/supabase-js": "^2.52.0",
-    "@tanstack/react-query": "^5.56.2",
+    "@tanstack/react-query": "^5.28.4",
     "@tanstack/react-table": "^8.21.3",
     "@types/pg": "^8.15.4",
     "@types/qrcode": "^1.5.5",
@@ -75,11 +76,11 @@
     "next-themes": "^0.3.0",
     "pg": "^8.16.0",
     "qrcode": "^1.5.4",
-    "react": "^18.3.1",
+    "react": "^18.2.0",
     "react-chartjs-2": "^5.3.0",
     "react-day-picker": "^8.10.1",
-    "react-dom": "^18.3.1",
-    "react-error-boundary": "^6.0.0",
+    "react-dom": "^18.2.0",
+    "react-error-boundary": "^4.0.13",
     "react-hook-form": "^7.53.0",
     "react-icons": "^5.5.0",
     "react-leaflet": "^4.2.1",

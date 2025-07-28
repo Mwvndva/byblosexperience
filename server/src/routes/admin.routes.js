@@ -14,7 +14,8 @@ import {
   updateEventStatus,
   getEventTickets,
   getAllProducts,
-  getSellerProducts
+  getSellerProducts,
+  getMonthlyEvents
 } from '../controllers/admin.controller.js';
 
 const router = express.Router();
@@ -40,6 +41,7 @@ router.patch('/organizers/:id/status', updateOrganizerStatus);
 
 // Events management
 router.get('/events', getAllEvents);
+router.get('/events/monthly', getMonthlyEvents);
 router.get('/events/:id', getEventById);
 router.get('/events/:id/tickets', getEventTickets);
 router.patch('/events/:id/status', updateEventStatus);
