@@ -361,7 +361,9 @@ const adminApi = {
   // Get ticket buyers for an event with detailed ticket type information
   async getEventTicketBuyers(eventId: string | number): Promise<EventTicketsResponse> {
     try {
+      console.log(`Fetching tickets for event ${eventId} from: ${api.defaults.baseURL}/admin/events/${eventId}/tickets`);
       const response = await api.get(`/admin/events/${eventId}/tickets`);
+      console.log('API Response:', response.data);
       const tickets = response.data?.data?.tickets || [];
       
       // Map the response to match the frontend's expected format
@@ -401,14 +403,36 @@ const adminApi = {
           }))
         }
       };
-    } catch (error) {
-      console.error('Error fetching event ticket buyers:', error);
-      // Return empty data instead of throwing to prevent UI crashes
+    } catch (error: any) {
+      const errorDetails = {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          headers: error.config?.headers
+        }
+      };
+      console.error('Error fetching event ticket buyers:', errorDetails);
+      
+      // Log the error to the server if needed
+      try {
+        await api.post('/error-log', {
+          type: 'ticket_fetch_error',
+          error: errorDetails,
+          timestamp: new Date().toISOString()
+        });
+      } catch (logError) {
+        console.error('Failed to log error:', logError);
+      }
+      
+      // Return empty data that matches the EventTicketsResponse type
       return { 
         data: { 
           event: null,
           tickets: [] 
-        } 
+        }
       };
     }
   }
