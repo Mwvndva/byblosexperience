@@ -502,8 +502,8 @@ const getEventTickets = async (req, res, next) => {
         tt.id as ticket_type_id,
         tt.name as ticket_type_name,
         tt.description as ticket_type_description,
-        tt.quantity_available as ticket_type_quantity,
-        tt.sales_start as ticket_type_sales_start,
+        tt.quantity as ticket_type_quantity,
+        tt.sales_start_date as ticket_type_sales_start,
         tt.sales_end as ticket_type_sales_end
       FROM tickets t
       LEFT JOIN ticket_types tt ON t.ticket_type_name = tt.name AND t.event_id = tt.event_id
