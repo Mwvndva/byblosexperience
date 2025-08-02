@@ -725,6 +725,83 @@ const getMonthlyEvents = async (req, res, next) => {
   }
 };
 
+// Get monthly metrics for sellers, products, and products sold
+const getMonthlyMetrics = async (req, res, next) => {
+  try {
+    console.log('Fetching monthly metrics...');
+    
+    // Query to get metrics for the last 12 months
+    const query = `
+      WITH months AS (
+        SELECT 
+          DATE_TRUNC('month', CURRENT_DATE - INTERVAL '11 months' + (n || ' months')::interval) AS month
+        FROM generate_series(0, 11) n
+      ),
+      seller_counts AS (
+        SELECT 
+          DATE_TRUNC('month', created_at) AS month,
+          COUNT(*) AS seller_count
+        FROM sellers
+        WHERE created_at >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '11 months')
+        GROUP BY DATE_TRUNC('month', created_at)
+      ),
+      product_counts AS (
+        SELECT 
+          DATE_TRUNC('month', created_at) AS month,
+          COUNT(*) AS product_count
+        FROM products
+        WHERE created_at >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '11 months')
+        GROUP BY DATE_TRUNC('month', created_at)
+      ),
+      sold_products AS (
+        SELECT 
+          DATE_TRUNC('month', updated_at) AS month,
+          COUNT(*) AS sold_count
+        FROM products
+        WHERE status = 'sold' 
+          AND updated_at >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '11 months')
+        GROUP BY DATE_TRUNC('month', updated_at)
+      )
+      SELECT 
+        TO_CHAR(m.month, 'YYYY-MM-DD') AS month,
+        COALESCE(sc.seller_count, 0) AS seller_count,
+        COALESCE(pc.product_count, 0) AS product_count,
+        COALESCE(sp.sold_count, 0) AS sold_count
+      FROM months m
+      LEFT JOIN seller_counts sc ON sc.month = m.month
+      LEFT JOIN product_counts pc ON pc.month = m.month
+      LEFT JOIN sold_products sp ON sp.month = m.month
+      ORDER BY m.month ASC;
+    `;
+
+    console.log('Executing metrics query...');
+    const result = await pool.query(query);
+    console.log('Metrics query result rows:', result.rows);
+    
+    // Format the response
+    const monthlyMetrics = result.rows.map(row => ({
+      month: row.month,
+      seller_count: parseInt(row.seller_count) || 0,
+      product_count: parseInt(row.product_count) || 0,
+      sold_count: parseInt(row.sold_count) || 0
+    }));
+
+    res.status(200).json({
+      status: 'success',
+      data: monthlyMetrics
+    });
+  } catch (error) {
+    console.error('Error fetching monthly metrics:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      hint: error.hint,
+      stack: error.stack
+    });
+    next(new AppError(`Failed to fetch monthly metrics: ${error.message}`, 500));
+  }
+};
+
 export {
   adminLogin,
   protect,
@@ -742,5 +819,5 @@ export {
   getEventTickets,
   getAllProducts,
   getSellerProducts,
-
+  getMonthlyMetrics,
 };

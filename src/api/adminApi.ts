@@ -77,7 +77,7 @@ api.interceptors.response.use(
 );
 
 // Admin API methods
-const adminApi = {
+export const adminApi = {
   // Admin login
   async login(pin: string) {
     try {
@@ -434,6 +434,33 @@ const adminApi = {
           tickets: [] 
         }
       };
+    }
+  },
+  
+  // Get monthly metrics for sellers, products, and products sold
+  async getMonthlyMetrics() {
+    try {
+      console.log('Fetching monthly metrics...');
+      const response = await api.get('/admin/metrics/monthly');
+      console.log('Monthly metrics response:', response.data);
+      
+      // Transform the data to match the expected format
+      if (response.data && response.data.data) {
+        return {
+          ...response.data,
+          data: response.data.data.map((item: any) => ({
+            month: item.month,
+            sellerCount: item.seller_count || 0,
+            productCount: item.product_count || 0,
+            soldCount: item.sold_count || 0
+          }))
+        };
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching monthly metrics:', error);
+      throw error;
     }
   }
 };

@@ -1,16 +1,17 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import * as React from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Spinner } from "@/components/ui/spinner"
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Spinner } from "@/components/ui/spinner";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { Calendar, Clock, Users, Ticket, User, ShoppingCart, DollarSign, Activity, Store, UserPlus, Eye, MoreHorizontal, Loader2, Plus, Package, X } from 'lucide-react';
-import adminApi from '@/api/adminApi';
+import { Calendar, Clock, Users, Ticket, User, ShoppingCart, DollarSign, Activity, Store, UserPlus, Eye, MoreHorizontal, Loader2, Plus, Package, X, ShoppingBag, UserCheck, Box } from 'lucide-react';
+import { adminApi } from '@/api/adminApi';
 import { format } from 'date-fns';
 
 // Custom tooltip for the events chart
@@ -48,12 +49,21 @@ interface DashboardAnalytics {
   totalEvents?: number;
   totalOrganizers?: number;
   totalProducts?: number;
+  totalSellers?: number;
   monthlyGrowth?: {
     revenue?: number;
     events?: number;
     organizers?: number;
     products?: number;
+    sellers?: number;
   };
+}
+
+interface MonthlyMetricsData {
+  month: string;
+  sellerCount: number;
+  productCount: number;
+  soldCount: number;
 }
 
 interface DashboardState {
@@ -87,6 +97,7 @@ interface DashboardState {
     createdAt: string;
   }>;
   monthlyEvents: MonthlyEventData[];
+  monthlyMetrics: MonthlyMetricsData[];
 }
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
@@ -175,7 +186,8 @@ const NewAdminDashboard = () => {
     recentEvents: [],
     sellers: [],
     organizers: [],
-    monthlyEvents: []
+    monthlyEvents: [],
+    monthlyMetrics: []
   });
 
   // Fetch dashboard data in a separate effect
@@ -183,35 +195,68 @@ const NewAdminDashboard = () => {
     if (authLoading || !isAuthenticated) return;
 
     const fetchData = async () => {
+      console.log('Starting to fetch dashboard data...');
       try {
-        const [analytics, events, sellers, organizers, monthlyEvents] = await Promise.all([
-          adminApi.getAnalytics(),
-          adminApi.getEvents(),
-          adminApi.getSellers(),
-          adminApi.getOrganizers(),
-          adminApi.getMonthlyEvents(),
+        const [
+          analytics, 
+          events, 
+          sellers, 
+          organizers, 
+          monthlyEvents,
+          monthlyMetrics
+        ] = await Promise.all([
+          adminApi.getAnalytics().then(data => {
+            console.log('Analytics data received:', data);
+            return data;
+          }),
+          adminApi.getEvents().then(data => {
+            console.log('Events data received:', data);
+            return data;
+          }),
+          adminApi.getSellers().then(data => {
+            console.log('Sellers data received:', data);
+            return data;
+          }),
+          adminApi.getOrganizers().then(data => {
+            console.log('Organizers data received:', data);
+            return data;
+          }),
+          adminApi.getMonthlyEvents().then(data => {
+            console.log('Monthly events data received:', data);
+            return data;
+          }),
+          adminApi.getMonthlyMetrics().then(data => {
+            console.log('Monthly metrics data received:', data);
+            return data;
+          })
         ]);
 
-        // Ensure we have valid data before updating state
+        // Ensure we have safe defaults if any data is missing
+        const totalSellers = Array.isArray(sellers) ? sellers.length : 0;
         const safeAnalytics: DashboardAnalytics = {
           totalRevenue: analytics?.totalRevenue || 0,
           totalEvents: analytics?.totalEvents || 0,
           totalOrganizers: analytics?.totalOrganizers || 0,
           totalProducts: analytics?.totalProducts || 0,
+          totalSellers: totalSellers,
           monthlyGrowth: {
             revenue: analytics?.monthlyGrowth?.revenue || 0,
             events: analytics?.monthlyGrowth?.events || 0,
             organizers: analytics?.monthlyGrowth?.organizers || 0,
-            products: analytics?.monthlyGrowth?.products || 0
+            products: analytics?.monthlyGrowth?.products || 0,
+            sellers: analytics?.monthlyGrowth?.sellers || 0
           }
         };
+        
+        console.log('Total sellers calculated:', totalSellers);
 
         setDashboardState({
           analytics: safeAnalytics,
           recentEvents: Array.isArray(events) ? events.slice(0, 5) : [],
           sellers: Array.isArray(sellers) ? sellers : [],
           organizers: Array.isArray(organizers) ? organizers : [],
-          monthlyEvents: Array.isArray(monthlyEvents) ? monthlyEvents : []
+          monthlyEvents: Array.isArray(monthlyEvents) ? monthlyEvents : [],
+          monthlyMetrics: Array.isArray(monthlyMetrics?.data) ? monthlyMetrics.data : []
         });
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
@@ -233,16 +278,6 @@ const NewAdminDashboard = () => {
   // Stats cards data with proper type safety
   const statsCards: StatsCardProps[] = [
     {
-      title: 'Total Revenue',
-      value: `$${dashboardState.analytics.totalRevenue.toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      })}`,
-      icon: <DollarSign className="h-4 w-4 text-yellow-500" />,
-      description: 'From all events',
-      trend: dashboardState.analytics.monthlyGrowth?.revenue ?? 0
-    },
-    {
       title: 'Total Events',
       value: dashboardState.analytics.totalEvents.toLocaleString(),
       icon: <Calendar className="h-4 w-4 text-blue-500" />,
@@ -263,7 +298,55 @@ const NewAdminDashboard = () => {
       description: 'Available products',
       trend: dashboardState.analytics.monthlyGrowth?.products ?? 0
     },
+    {
+      title: 'Total Sellers',
+      value: dashboardState.analytics.totalSellers?.toLocaleString() || '0',
+      icon: <ShoppingCart className="h-4 w-4 text-purple-500" />,
+      description: 'Active sellers',
+      trend: dashboardState.analytics.monthlyGrowth?.sellers ?? 0
+    },
   ];
+
+    // Format metrics data for the chart
+  const metricsData = useMemo(() => {
+    if (!dashboardState.monthlyMetrics?.length) return [];
+    
+    return dashboardState.monthlyMetrics.map(metric => ({
+      name: new Date(metric.month).toLocaleString('default', { month: 'short' }),
+      fullDate: new Date(metric.month).toLocaleString('default', { month: 'long', year: 'numeric' }),
+      sellers: metric.sellerCount || 0,
+      products: metric.productCount || 0,
+      sold: metric.soldCount || 0
+    }));
+  }, [dashboardState.monthlyMetrics]);
+  
+  // Custom tooltip for metrics chart
+  const MetricsTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-gray-800 p-4 border border-gray-700 rounded-lg shadow-lg">
+          <p className="font-medium text-white">{data.fullDate || label}</p>
+          {payload.map((entry: any) => (
+            <p key={entry.dataKey} className="text-sm text-gray-300 mt-1">
+              <span style={{ color: entry.color }}>
+                {entry.dataKey === 'sellers' ? (
+                  <UserCheck className="w-3 h-3 inline mr-1" />
+                ) : entry.dataKey === 'products' ? (
+                  <Package className="w-3 h-3 inline mr-1" />
+                ) : (
+                  <ShoppingBag className="w-3 h-3 inline mr-1" />
+                )}
+                {entry.dataKey.charAt(0).toUpperCase() + entry.dataKey.slice(1)}:
+              </span>{' '}
+              {entry.value.toLocaleString()}
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
 
   // Format event data for the chart
   const eventsData = useMemo(() => {
@@ -399,6 +482,19 @@ const NewAdminDashboard = () => {
 
   // Loading and error states are now handled at the top of the component
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <Spinner className="h-8 w-8 text-yellow-500" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    navigate('/admin/login');
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gray-900 p-4 md:p-8">
       {/* Ticket Buyers Modal */}
@@ -420,11 +516,10 @@ const NewAdminDashboard = () => {
             <div className="overflow-auto flex-1 p-4">
               {isLoadingBuyers ? (
                 <div className="flex items-center justify-center h-40">
-                  <Spinner className="h-8 w-8" />
-                  <span className="ml-2">Loading ticket buyers...</span>
+                  <Spinner className="h-8 w-8 text-yellow-500" />
                 </div>
               ) : error ? (
-                <div className="text-center py-8 text-red-400">
+                <div className="text-red-400 p-4 bg-red-900 bg-opacity-30 rounded-lg">
                   Error loading ticket buyers: {error}
                 </div>
               ) : ticketBuyers.length === 0 ? (
@@ -543,96 +638,191 @@ const NewAdminDashboard = () => {
               value="sellers" 
               className="rounded-md px-4 py-2 data-[state=active]:bg-yellow-500 data-[state=active]:text-gray-900 text-gray-300 hover:text-white transition-colors"
             >
-              <Store className="w-4 h-4 mr-2" />
               Sellers
             </TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
-            {/* Events Chart */}
-            <Card className="bg-gray-800 border-gray-700 overflow-hidden">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-white text-lg">Monthly Event Counts</CardTitle>
-                <CardDescription className="text-gray-300 text-sm">Monthly event counts performance</CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <div className="h-[300px] w-full">
-                  {eventsData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={eventsData}
-                        margin={{
-                          top: 20,
-                          right: 20,
-                          left: 0,
-                          bottom: 5,
-                        }}
-                        barCategoryGap="15%"
-                        barGap={4}
-                      >
-                        <defs>
-                          <linearGradient id="eventBarGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.8} />
-                            <stop offset="100%" stopColor="#3B82F6" stopOpacity={0.2} />
-                          </linearGradient>
-                        </defs>
-                        <Tooltip 
-                          content={<EventsTooltip />} 
-                          cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} 
-                          contentStyle={{
-                            backgroundColor: '#1F2937',
-                            border: '1px solid #374151',
-                            borderRadius: '0.5rem',
-                            padding: '0.5rem',
-                          }}
-                        />
-                        <CartesianGrid 
-                          strokeDasharray="3 3" 
-                          vertical={false} 
-                          stroke="#374151" 
-                        />
-                        <XAxis 
-                          dataKey="name" 
-                          stroke="#9CA3AF"
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                          tickMargin={10}
-                          interval={0}
-                        />
-                        <YAxis 
-                          stroke="#9CA3AF"
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                          allowDecimals={false}
-                          width={30}
-                        />
-                        <Bar 
-                          dataKey="count" 
-                          name="Events"
-                          fill="url(#eventBarGradient)" 
-                          radius={[4, 4, 0, 0]}
-                          barSize={24}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="flex h-full items-center justify-center">
-                      <p className="text-gray-400 text-sm">No event data available</p>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Events Chart */}
+                <Card className="bg-gray-800 border-gray-700 overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-white text-lg">Monthly Event Counts</CardTitle>
+                        <CardDescription className="text-gray-300 text-sm">Monthly event counts performance</CardDescription>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="flex items-center">
+                          <div className="w-3 h-3 rounded-full bg-blue-500 mr-1"></div>
+                          <span className="text-xs text-gray-400">Events</span>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    <div className="h-[300px] w-full">
+                      {eventsData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={eventsData}>
+                            <defs>
+                              <linearGradient id="eventBarGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" />
+                            <XAxis 
+                              dataKey="name"
+                              stroke="#9CA3AF"
+                              fontSize={12}
+                              tickLine={false}
+                              axisLine={false}
+                              tickMargin={10}
+                            />
+                            <YAxis 
+                              stroke="#9CA3AF"
+                              fontSize={12}
+                              tickLine={false}
+                              axisLine={false}
+                              tickMargin={10}
+                              width={30}
+                            />
+                            <Tooltip 
+                              contentStyle={{
+                                backgroundColor: '#1F2937',
+                                border: '1px solid #374151',
+                                borderRadius: '0.5rem',
+                                padding: '0.75rem',
+                              }}
+                              labelStyle={{ color: '#E5E7EB', fontWeight: '500' }}
+                              itemStyle={{ color: '#E5E7EB', padding: '4px 0' }}
+                            />
+                            <Bar 
+                              dataKey="count" 
+                              fill="url(#eventBarGradient)" 
+                              radius={[4, 4, 0, 0]}
+                              barSize={24}
+                            />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-gray-400">
+                          No event data available
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
 
-            {/* Recent Events */}
-            <Card className="bg-gray-800 border-gray-700 overflow-hidden">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-white text-lg">Recent Events</CardTitle>
-                <CardDescription className="text-gray-300 text-sm">Latest events created in the system</CardDescription>
-              </CardHeader>
+                {/* Metrics Chart */}
+                <Card className="bg-gray-800 border-gray-700 overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-white text-lg">Monthly Metrics</CardTitle>
+                        <CardDescription className="text-gray-300 text-sm">Sellers, Products & Sales Performance</CardDescription>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="flex items-center">
+                          <div className="w-3 h-3 rounded-full bg-purple-500 mr-1"></div>
+                          <span className="text-xs text-gray-400">Sellers</span>
+                        </div>
+                        <div className="flex items-center">
+                          <div className="w-3 h-3 rounded-full bg-green-500 mr-1"></div>
+                          <span className="text-xs text-gray-400">Products</span>
+                        </div>
+                        <div className="flex items-center">
+                          <div className="w-3 h-3 rounded-full bg-yellow-500 mr-1"></div>
+                          <span className="text-xs text-gray-400">Sold</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    <div className="h-[300px] w-full">
+                      {metricsData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={metricsData}>
+                            <defs>
+                              <linearGradient id="colorSellers" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.8}/>
+                                <stop offset="95%" stopColor="#a78bfa" stopOpacity={0.1}/>
+                              </linearGradient>
+                              <linearGradient id="colorProducts" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#4ade80" stopOpacity={0.8}/>
+                                <stop offset="95%" stopColor="#4ade80" stopOpacity={0.1}/>
+                              </linearGradient>
+                              <linearGradient id="colorSold" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#facc15" stopOpacity={0.8}/>
+                                <stop offset="95%" stopColor="#facc15" stopOpacity={0.1}/>
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" />
+                            <XAxis 
+                              dataKey="name" 
+                              axisLine={false} 
+                              tickLine={false} 
+                              tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                              tickMargin={10}
+                            />
+                            <YAxis 
+                              axisLine={false} 
+                              tickLine={false} 
+                              tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                              tickMargin={10}
+                              width={40}
+                              tickFormatter={(value) => value.toLocaleString()}
+                              domain={[0, (dataMax: number) => Math.ceil(dataMax * 1.1)]}
+                            />
+                            <Tooltip 
+                              content={<MetricsTooltip />}
+                              cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
+                            />
+                            <Line 
+                              type="monotone" 
+                              dataKey="sellers" 
+                              stroke="#a78bfa" 
+                              strokeWidth={2}
+                              dot={false}
+                              activeDot={{ r: 6, stroke: '#7c3aed', strokeWidth: 2, fill: '#a78bfa' }}
+                            />
+                            <Line 
+                              type="monotone" 
+                              dataKey="products" 
+                              stroke="#4ade80" 
+                              strokeWidth={2}
+                              dot={false}
+                              activeDot={{ r: 6, stroke: '#16a34a', strokeWidth: 2, fill: '#4ade80' }}
+                            />
+                            <Line 
+                              type="monotone" 
+                              dataKey="sold" 
+                              stroke="#facc15" 
+                              strokeWidth={2}
+                              dot={false}
+                              activeDot={{ r: 6, stroke: '#d97706', strokeWidth: 2, fill: '#facc15' }}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="flex items-center justify-center h-full">
+                          <p className="text-gray-400">No metrics data available</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Recent Events */}
+              <Card className="bg-gray-800 border-gray-700 overflow-hidden">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-white text-lg">Recent Events</CardTitle>
+                  <CardDescription className="text-gray-300 text-sm">Latest events created in the system</CardDescription>
+                </CardHeader>
               <CardContent className="p-4 pt-0">
                 <div className="space-y-4">
                   {dashboardState.recentEvents?.map((event) => (
@@ -674,6 +864,7 @@ const NewAdminDashboard = () => {
                 </Button>
               </CardFooter>
             </Card>
+          </div>
           </TabsContent>
 
           {/* Events Tab */}
@@ -879,6 +1070,11 @@ const NewAdminDashboard = () => {
                             >
                               {seller.status}
                             </Badge>
+                          </td>
+                          <td className="py-3 text-right">
+                            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                              <Eye className="h-4 w-4" />
+                            </Button>
                           </td>
                         </tr>
                       ))}
